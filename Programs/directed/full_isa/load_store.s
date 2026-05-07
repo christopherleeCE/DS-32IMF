@@ -8,7 +8,7 @@ _start:
 # this value gets used by all the stack pointers in the test
 # side note, gcc acutally move the stack pointer down rather
 # then up, food for thought
-li gp, 0x4000
+li gp, 0x18000
 
 li a0, 0x00000000
 li a1, 0x55555555
@@ -112,6 +112,18 @@ sw a3, 12(sp)
 0xAAAAAAAA
 0xFFFFFFFF
 */
+
+# nop
+# nop
+# nop
+# nop
+# nop
+# ebreak
+# nop
+# nop
+# nop
+# nop
+# nop
 
 addi sp, gp, 0
 lb x16, 0(sp)
