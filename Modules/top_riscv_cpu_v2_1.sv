@@ -21,7 +21,6 @@ TODO confirm 96 + 80 mk9 will fit
 TODO mem expansion, (aliasing, golden, dut, linker, stack setup, heap setup, addr normalization) and prob more...
 TODO expand randtest len after dmem and imem upgrade
 TODO stress test hex2mif
-TODO compress .mif???
 
 Out of Semester
 ===============
