@@ -207,7 +207,7 @@ module data_memory
    );
 
 
-   dual_mk9_ram_mif_aclr_80k my_dual_mk9_ram_mif(
+   dual_mk9_ram_mif_aclr_80k my_dual_mk9_ram(
       .aclr_a(!rst),
       .address_a(addr[16:2]),
       .byteena_a(byteena_sig),
