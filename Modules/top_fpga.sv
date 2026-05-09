@@ -140,7 +140,7 @@ module top_fpga(
 
     logic [31:0] portb_q, portb_addr;
     logic b_loading, b_incing, b_done;
-    logic [15:0] seq_eng_cnt, max_arr_index;
+    logic [7:0] seq_eng_cnt, max_arr_index;
 
     logic ascii_mode;
     assign ascii_mode = switches[6:5] == 2'b01;
@@ -216,8 +216,8 @@ module top_fpga(
             b_loading <= '0;
             b_incing <= 1'b1;
 
-            max_arr_index <= a0[31:16];
-            portb_addr <= {16'b0, a0[15:0]};
+            max_arr_index <= a0[31:24];
+            portb_addr <= {8'b0, a0[23:0]};
 
         end else if(b_incing) begin
             b_incing <= ~(seq_eng_cnt == max_arr_index);

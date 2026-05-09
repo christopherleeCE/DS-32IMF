@@ -19,8 +19,8 @@ holden TODO bump up mem capacies cus why not we got like 180kb or sumthin like t
 TODO fix vga overflow
 TODO confirm 96 + 80 mk9 will fit
 TODO mem expansion, (aliasing, golden, dut, linker, stack setup, heap setup, addr normalization) and prob more...
-TODO expand randtest len after dmem and imem upgrade
-TODO stress test hex2mif
+TODO check bytemask x fuckery
+TODO assess data constrain risks, make a crash for malloc, find out if there is a way to have a variable heap len
 
 Out of Semester
 ===============

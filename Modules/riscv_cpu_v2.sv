@@ -619,7 +619,7 @@ module riscv_cpu_v2(
     //synchronous-read data mem, so inputs come straight from EX stage
     assign DATA_MEM_ADDR = ALU - LOWEST_DATA_MEM_ADDR;
     assign DATA_MEM_ADDR_B = portb_addr - LOWEST_DATA_MEM_ADDR;
-    assign VRAM_ADDR = (((pix_y>>2)*32'd160 + (pix_x>>2)) << 1);// + LOWEST_DATA_MEM_ADDR;
+    assign VRAM_ADDR = (((pix_y>>2)*32'd160 + (pix_x>>2)) << 1) + 32'hAA00;// + LOWEST_DATA_MEM_ADDR;
     //assign portb_q = pix_vis ? VRAM_ADDR : '0;
 
     assign portb_rst_mux = portb_extern_en ? portb_rst : rst;
@@ -651,8 +651,8 @@ module riscv_cpu_v2(
     );
 
     assign VGA_RED =   pix_vis ? portb_q[3:0]  : '0;
-    assign VGA_BLUE =  pix_vis ? portb_q[7:4]  : '0;
-    assign VGA_GREEN = pix_vis ? portb_q[11:8] : '0;
+    assign VGA_GREEN = pix_vis ? portb_q[7:4]  : '0;
+    assign VGA_BLUE =  pix_vis ? portb_q[11:8] : '0;
     assign VGA_HS = hs;
     assign VGA_VS = vs;
 
@@ -670,9 +670,9 @@ module riscv_cpu_v2(
     //     .rst(rst)
     // );
 
-    // assign VGA_RED = color[0];
+    // assign VGA_RED   = color[0];
     // assign VGA_GREEN = color[1];
-    // assign VGA_BLUE = color[2];
+    // assign VGA_BLUE  = color[2];
     // assign VGA_HS = hs;
     // assign VGA_VS = vs;
     ////////////////////////////////////////////////////////

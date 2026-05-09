@@ -12,5 +12,5 @@ need to determine whether or to not to preform length correction, if an array (n
 in the seq_engine will underflow and the auto stop will not work
 */
 uint32_t pack_ptr(uint32_t* ptr, uint16_t len, bool is_string){
-    return (((uint32_t)len - (is_string ? 1 : 2)) << 16) | ((uintptr_t)ptr & 0xFFFF);
+    return (((uint32_t)len - (is_string ? 1 : 2)) << 24 ) | ((uintptr_t)ptr & 0xFFFFFF);
 }

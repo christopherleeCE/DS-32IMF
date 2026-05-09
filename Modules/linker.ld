@@ -1,9 +1,10 @@
 ENTRY(_start)
 /*TODO heap setup*/
+/*dmem is 80k - framebuffer len*/
 MEMORY
 {
     IMEM (rx)  : ORIGIN = 0x00000000, LENGTH = 96K
-    DMEM (rw)  : ORIGIN = 0x00018000, LENGTH = 80K
+    DMEM (rw)  : ORIGIN = 0x00018000, LENGTH = 43520
 }
 
 _estack = ORIGIN(DMEM) + LENGTH(DMEM);
