@@ -38,7 +38,7 @@ module top_vga();
     end
 
     initial begin
-        $dumpfile("dump.vcd");
+        $dumpfile("./dump/dump.vcd");
         $dumpvars();
         // for(int ii = 0; ii < 5; ii++) begin
         //     wait(clk == 1'b0); wait(clk == 1'b1);

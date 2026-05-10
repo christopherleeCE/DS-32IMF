@@ -21,8 +21,6 @@ TODO confirm 96 + 80 mk9 will fit
 TODO mem expansion, (aliasing, golden, dut, linker, stack setup, heap setup, addr normalization) and prob more...
 TODO check bytemask x fuckery, change back to full word verify after ram convsersion
 TODO assess data constrain risks, make a crash for malloc, find out if there is a way to have a variable heap len
-TODO add read en at some point to mk9's 
-TODO create dump folder
 
 Out of Semester
 ===============
@@ -295,7 +293,7 @@ module top_riscv_cpu_v2_1();
         dump_mem = $test$plusargs("MEM_DUMP");
 
         if(dump_waves) begin
-            $dumpfile("dump.vcd");
+            $dumpfile("./dump/dump.vcd");
             $dumpvars();
         end
 
@@ -365,10 +363,10 @@ module top_riscv_cpu_v2_1();
     final begin
 
         if(dump_mem) begin
-            $writememh("imem_gold_dump.hex", top_riscv_cpu_v2_1.instr_mem.instr_mem);
-            $writememh("imem_dut_dump.hex", top_riscv_cpu_v2_1.cpu_dut.my_mk9_rom.altsyncram_component.m_default.altsyncram_inst.mem_data);
-            $writememh("dmem_gold_dump.hex", top_riscv_cpu_v2_1.DATA_MEM[1]);
-            $writememh("dmem_dut_dump.hex", top_riscv_cpu_v2_1.cpu_dut.my_data_mem.my_dual_mk9_ram.altsyncram_component.m_default.altsyncram_inst.mem_data);
+            $writememh("./dump/imem_gold_dump.hex", top_riscv_cpu_v2_1.instr_mem.instr_mem);
+            $writememh("./dump/imem_dut_dump.hex", top_riscv_cpu_v2_1.cpu_dut.my_mk9_rom.altsyncram_component.m_default.altsyncram_inst.mem_data);
+            $writememh("./dump/dmem_gold_dump.hex", top_riscv_cpu_v2_1.DATA_MEM[1]);
+            $writememh("./dump/dmem_dut_dump.hex", top_riscv_cpu_v2_1.cpu_dut.my_data_mem.my_dual_mk9_ram.altsyncram_component.m_default.altsyncram_inst.mem_data);
         end
 
         $display("$finish() called... comparing entire dut with gold regfile\n");

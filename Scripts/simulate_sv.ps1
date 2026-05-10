@@ -52,15 +52,15 @@ if ($wave_dump)         { $vsimArgs += " +WAVE_DUMP" }
 if ($mem_dump)         { $vsimArgs += " +MEM_DUMP" }
 
 #always delete log files before sim
-Remove-Item -Path imem_dut_dump.hex -ErrorAction SilentlyContinue
-Remove-Item -Path imem_gold_dump.hex -ErrorAction SilentlyContinue
-Remove-Item -Path imem_dut_dump.log -ErrorAction SilentlyContinue
-Remove-Item -Path imem_gold_dump.log -ErrorAction SilentlyContinue
-Remove-Item -Path dmem_dut_dump.hex -ErrorAction SilentlyContinue
-Remove-Item -Path dmem_gold_dump.hex -ErrorAction SilentlyContinue
-Remove-Item -Path dmem_dut_dump.log -ErrorAction SilentlyContinue
-Remove-Item -Path dmem_gold_dump.log -ErrorAction SilentlyContinue
-Remove-Item -Path dump.vcd -ErrorAction SilentlyContinue
+Remove-Item -Path ./dump/imem_dut_dump.hex -ErrorAction SilentlyContinue
+Remove-Item -Path ./dump/imem_gold_dump.hex -ErrorAction SilentlyContinue
+Remove-Item -Path ./dump/imem_dut_dump.log -ErrorAction SilentlyContinue
+Remove-Item -Path ./dump/imem_gold_dump.log -ErrorAction SilentlyContinue
+Remove-Item -Path ./dump/dmem_dut_dump.hex -ErrorAction SilentlyContinue
+Remove-Item -Path ./dump/dmem_gold_dump.hex -ErrorAction SilentlyContinue
+Remove-Item -Path ./dump/dmem_dut_dump.log -ErrorAction SilentlyContinue
+Remove-Item -Path ./dump/dmem_gold_dump.log -ErrorAction SilentlyContinue
+Remove-Item -Path ./dump/dump.vcd -ErrorAction SilentlyContinue
 
 #gpt says this was needed for bram but quartus said it only needs altera_mf
 #vlog $quartus/eda/sim_lib/220model.v

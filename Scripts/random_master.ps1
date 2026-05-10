@@ -93,7 +93,7 @@ if(-not $only_gen_master_log){
         Write-Host "Assembling in WSL & Loading instruction_mem.txt and data_memory.txt..."
         wsl bash -c "dos2unix ../Scripts/my_gcc.sh"
         if ($LASTEXITCODE -ne 0) { Write-Host "Exit code shows error..." -ForegroundColor Red; exit 1 }
-        wsl bash -c "../Scripts/my_gcc.sh temp.s -gas > objdump.log 2>&1"
+        wsl bash -c "../Scripts/my_gcc.sh temp.s -gas > ./dump/objdump.log 2>&1"
         if ($LASTEXITCODE -ne 0) { Write-Host "Exit code shows error..." -ForegroundColor Red; exit 1 }
         python3 .\hex2mif.py .\instruction_memory.hex instr.mif
         if ($LASTEXITCODE -ne 0) { Write-Host "Exit code shows error..." -ForegroundColor Red; exit 1 }

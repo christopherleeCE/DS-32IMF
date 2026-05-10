@@ -55,5 +55,5 @@ if __name__ == "__main__":
     #parser.add_argument("output", help="output .mif file")
     args = parser.parse_args()
 
-    parse_hex("imem_dut_dump.hex", "imem_dut_dump.log")
-    parse_hex("imem_gold_dump.hex", "imem_gold_dump.log")
+    parse_hex("./dump/imem_dut_dump.hex", "./dump/imem_dut_dump.log")
+    parse_hex("./dump/imem_gold_dump.hex", "./dump/imem_gold_dump.log")
