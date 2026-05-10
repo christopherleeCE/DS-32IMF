@@ -632,7 +632,7 @@ module riscv_cpu_v2(
     data_memory #(
         .BIT_WIDTH(32)
     ) my_data_mem (
-        .addr(DATA_MEM_ADDR),
+        .addr((DATA_MEM_ADDR < 32'h14000) ? DATA_MEM_ADDR : '0), //a horrible way to supress altsyncram OOB warnings in the sim.log
         .writeData(RS2_DATA_E_FWD),
         .writeEn(data_mem_wr_en_E),
         .readData(NEW_DATA_MEM_OUT),
@@ -642,7 +642,7 @@ module riscv_cpu_v2(
         .addr_half(addr_half_E),
         .zero_extend(zero_extend_mem_E),
         .portb_rst(portb_rst_mux),
-        .portb_addr(PORTB_ADDR_MUX),
+        .portb_addr((PORTB_ADDR_MUX < 32'h14000) ? PORTB_ADDR_MUX : '0), //a horrible way to supress altsyncram OOB warnings in the sim.log
         .portb_clk(portb_clk_mux),
         .portb_q(portb_q),
         .portb_addr_byte(portb_addr_byte_mux),

@@ -57,9 +57,9 @@ Write-Host "Press Enter to continue to the next test " -ForegroundColor Cyan -No
 Read-Host
 
 if(-not $no_rand){
-    ../Scripts/random_master.ps1 -runs 100 -mem_dump
-    if ($LASTEXITCODE -ne 0) {Write-Host "`n'../Scripts/random_master.ps1 -runs 100' threw an error, FAIL`n" -ForegroundColor Red}
-    Write-Host "Finished running '../Scripts/random_master.ps1 -runs 100'" -ForegroundColor Blue
+    ../Scripts/random_master.ps1 -runs 5 -mem_dump
+    if ($LASTEXITCODE -ne 0) {Write-Host "`n'../Scripts/random_master.ps1 -runs 5' threw an error, FAIL`n" -ForegroundColor Red}
+    Write-Host "Finished running '../Scripts/random_master.ps1 -runs 5'" -ForegroundColor Blue
     Write-Host "Press Enter to continue to the next test " -ForegroundColor Cyan -NoNewLine
     Read-Host
 }

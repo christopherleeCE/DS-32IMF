@@ -22,6 +22,7 @@ TODO mem expansion, (aliasing, golden, dut, linker, stack setup, heap setup, add
 TODO check bytemask x fuckery, change back to full word verify after ram convsersion
 TODO assess data constrain risks, make a crash for malloc, find out if there is a way to have a variable heap len
 TODO add read en at some point to mk9's 
+TODO create dump folder
 
 Out of Semester
 ===============
