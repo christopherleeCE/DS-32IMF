@@ -92,7 +92,15 @@ vsim -c -do $do
 
 }
 
+$ret_imem = 0
+$ret_dmem = 0
 if($mem_dump){
     ../Scripts/verify_imem_dump.ps1
+    $ret_imem = $LASTEXITCODE
     ../Scripts/verify_dmem_dump.ps1
+    $ret_dmem = $LASTEXITCODE
+}
+
+if(($ret_imem -eq -1) -or ($ret_dmem -eq -1)){
+    exit -1
 }
