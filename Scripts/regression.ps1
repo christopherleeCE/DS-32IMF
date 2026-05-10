@@ -30,30 +30,35 @@ if ($currentDirName -ne "Modules") {
 if($LASTEXITCODE -ne 0){Write-Host "`n'../Scripts/directed_master.ps1' threw an error, FAIL`n" -ForegroundColor Red}
 Write-Host "Finished running '../Scripts/directed_master.ps1'" -ForegroundColor Blue
 Write-Host "Press Enter to continue to the next test " -ForegroundColor Cyan -NoNewLine
+[System.Media.SystemSounds]::Exclamation.Play()
 Read-Host
 
 ../Scripts/directed_master.ps1 -directory opt -mem_dump
 if($LASTEXITCODE -ne 0){Write-Host "`n'../Scripts/directed_master.ps1 -directory opt' threw an error, FAIL`n" -ForegroundColor Red}
 Write-Host "Finished running '../Scripts/directed_master.ps1 -directory opt'" -ForegroundColor Blue
 Write-Host "Press Enter to continue to the next test " -ForegroundColor Cyan -NoNewLine
+[System.Media.SystemSounds]::Exclamation.Play()
 Read-Host
 
 ../Scripts/directed_master.ps1 -directory opt -compile -mem_dump
 if($LASTEXITCODE -ne 0){Write-Host "`n'../Scripts/directed_master.ps1 -directory opt -compile' threw an error, FAIL`n" -ForegroundColor Red}
 Write-Host "Finished running '../Scripts/directed_master.ps1 -directory opt -compile'" -ForegroundColor Blue
 Write-Host "Press Enter to continue to the next test " -ForegroundColor Cyan -NoNewLine
+[System.Media.SystemSounds]::Exclamation.Play()
 Read-Host
 
 ../Scripts/directed_master.ps1 -directory functional_s -mem_dump
 if($LASTEXITCODE -ne 0){Write-Host "`n'../Scripts/directed_master.ps1 -directory functional_s' threw an error, FAIL`n" -ForegroundColor Red}
 Write-Host "Finished running '../Scripts/directed_master.ps1 -directory functional_s'" -ForegroundColor Blue
 Write-Host "Press Enter to continue to the next test " -ForegroundColor Cyan -NoNewLine
+[System.Media.SystemSounds]::Exclamation.Play()
 Read-Host
 
 ../Scripts/directed_master.ps1 -directory functional_c -compile -mem_dump
 if($LASTEXITCODE -ne 0){Write-Host "`n'../Scripts/directed_master.ps1 -directory functional_c -compile' threw an error, FAIL`n" -ForegroundColor Red}
 Write-Host "Finished running '../Scripts/directed_master.ps1 -directory functional_c -compile'" -ForegroundColor Blue
 Write-Host "Press Enter to continue to the next test " -ForegroundColor Cyan -NoNewLine
+[System.Media.SystemSounds]::Exclamation.Play()
 Read-Host
 
 if(-not $no_rand){
@@ -61,10 +66,12 @@ if(-not $no_rand){
     if ($LASTEXITCODE -ne 0) {Write-Host "`n'../Scripts/random_master.ps1 -runs 5' threw an error, FAIL`n" -ForegroundColor Red}
     Write-Host "Finished running '../Scripts/random_master.ps1 -runs 5'" -ForegroundColor Blue
     Write-Host "Press Enter to continue to the next test " -ForegroundColor Cyan -NoNewLine
+    [System.Media.SystemSounds]::Exclamation.Play()
     Read-Host
 }
 
 Write-Host "Regresssion testing complete, press Enter to finish..." -ForegroundColor Magenta
+[System.Media.SystemSounds]::Exclamation.Play()
 Read-Host
 
 

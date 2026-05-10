@@ -17,9 +17,7 @@ Current semester
 ================
 holden TODO bump up mem capacies cus why not we got like 180kb or sumthin like that (LOL)
 TODO fix vga overflow
-TODO confirm 96 + 80 mk9 will fit
 TODO mem expansion, (aliasing, golden, dut, linker, stack setup, heap setup, addr normalization) and prob more...
-TODO check bytemask x fuckery, change back to full word verify after ram convsersion
 TODO assess data constrain risks, make a crash for malloc, find out if there is a way to have a variable heap len
 
 Out of Semester
@@ -1431,7 +1429,6 @@ module top_riscv_cpu_v2_1();
             $display("[MEM] INSTR_M     = 0x%08h", cpu_dut.INSTR_M);
             $display("[MEM] ADDR_REG    = 0x%08h", cpu_dut.my_data_mem.addr_internal_mirror);
             $display("[MEM] WR_DATA_REG = 0x%08h", cpu_dut.my_data_mem.write_data_internal_mirror);
-            $display("[MEM] WR_WORD_REG = 0x%08h", cpu_dut.my_data_mem.write_word_internal_mirror);
             $display("[MEM] DMEM_OUT    = 0x%08h", cpu_dut.DATA_MEM_OUT);
             $display("[MEM] MEM_WR_EN   = %0b",    cpu_dut.my_data_mem.writeEn_internal_mirror);
                         $write("\n");
@@ -1942,13 +1939,22 @@ module top_riscv_cpu_v2_1();
 
                     if(row == 3) begin
 
-                        local_addr = ((REG_FILE[3][rs1_v] + imm_s_v) - LOWEST_DATA_MEM_ADDR);
+                        // local_addr = ((REG_FILE[3][rs1_v] + imm_s_v) - LOWEST_DATA_MEM_ADDR);
+                        // WARING IF YOU USE THIS CODE AGAIN THEN ADD ADDR ASSERTION
+                        // assert(cpu_dut.my_data_mem.data_out_mem == DATA_MEM[3][local_addr>>2]) $display(" Success: 0x%h", PC[row]);
+                        // else begin $display(" FAILURE: 0x%h", PC[row]); return 1; end
+                        // // $display("data [dut, gold] = [%h, %h]", cpu_dut.my_data_mem.data_out_mem, DATA_MEM[3][local_addr>>2]);
+                        // // $display("addr [dut, gold] = [%h, %h]", cpu_dut.my_data_mem.addr_internal_mirror, local_addr);
 
-                        assert(cpu_dut.my_data_mem.data_out_mem == DATA_MEM[3][local_addr>>2]) $display(" Success: 0x%h", PC[row]);
-                        else begin $display(" FAILURE: 0x%h", PC[row]); return 1; end
-                        // $display("data [dut, gold] = [%h, %h]", cpu_dut.my_data_mem.data_out_mem, DATA_MEM[3][local_addr>>2]);
-                        // $display("addr [dut, gold] = [%h, %h]", cpu_dut.my_data_mem.addr_internal_mirror, local_addr);
-                        
+                        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+                        // $display("data [dut, gold] = [%h, %h]", cpu_dut.my_data_mem.data_out_mem, DATA_MEM[3][((REG_FILE[3][rs1_v] + imm_s_v) - LOWEST_DATA_MEM_ADDR)>>2]);
+                        // $display("addr [dut, gold] = [%h, %h]", cpu_dut.my_data_mem.addr_internal_mirror>>2, ((REG_FILE[3][rs1_v] + imm_s_v) - LOWEST_DATA_MEM_ADDR)>>2);
+                        assert(cpu_dut.my_data_mem.addr_internal_mirror>>2 == ((REG_FILE[3][rs1_v] + imm_s_v) - LOWEST_DATA_MEM_ADDR)>>2) $display(" Success: 0x%h", PC[row]);
+                        else begin $display(" FAILURE: 0x%h", PC[row]); return 1; end     
+                        assert(cpu_dut.my_data_mem.data_out_mem == DATA_MEM[3][((REG_FILE[3][rs1_v] + imm_s_v) - LOWEST_DATA_MEM_ADDR)>>2]) $display(" Success: 0x%h", PC[row]);
+                        else begin $display(" FAILURE: 0x%h", PC[row]); return 1; end    
+
                     end
 
                     // if(row == 4) begin
@@ -1965,26 +1971,30 @@ module top_riscv_cpu_v2_1();
 
                     if(row == 3) begin
 
-                        local_addr = ((REG_FILE[3][rs1_v] + imm_s_v) - LOWEST_DATA_MEM_ADDR);
+                        // local_addr = ((REG_FILE[3][rs1_v] + imm_s_v) - LOWEST_DATA_MEM_ADDR);
+                        // WARING IF YOU USE THIS CODE AGAIN THEN ADD ADDR ASSERTION
+                        // if(local_addr[1:0] == 2'd0) begin
+                        //     assert(cpu_dut.my_data_mem.data_out_mem[15:0] == DATA_MEM[3][local_addr>>2][15:0]) $display(" Success: 0x%h", PC[row]);
+                        //     else begin $display(" FAILURE: 0x%h", PC[row]); return 1; end
+                        //     // $display("addr [dut, gold] = [%h, %h]", cpu_dut.my_data_mem.addr_internal_mirror, ((REG_FILE[3][rs1_v] + imm_s_v) - LOWEST_DATA_MEM_ADDR));
+                        //     // $display("data [dut, gold] = [%h, %h]", cpu_dut.my_data_mem.data_out_mem[15:0], DATA_MEM[3][local_addr>>2][15:0]);
+                        // end else if(local_addr[1:0] == 2'd2) begin
+                        //     assert(cpu_dut.my_data_mem.data_out_mem[31:16] == DATA_MEM[3][local_addr>>2][31:16]) $display(" Success: 0x%h", PC[row]);
+                        //     else begin $display(" FAILURE: 0x%h", PC[row]); return 1; end
+                        //     // $display("addr [dut, gold] = [%h, %h]", cpu_dut.my_data_mem.addr_internal_mirror, ((REG_FILE[3][rs1_v] + imm_s_v) - LOWEST_DATA_MEM_ADDR));
+                        //     // $display("data [dut, gold] = [%h, %h]", cpu_dut.my_data_mem.data_out_mem[31:16], DATA_MEM[3][local_addr>>2][31:16]);
+                        // end else begin
+                        //     $error("Illegal SH address");
+                        // end
 
-                        if(local_addr[1:0] == 2'd0) begin
-                            assert(cpu_dut.my_data_mem.data_out_mem[15:0] == DATA_MEM[3][local_addr>>2][15:0]) $display(" Success: 0x%h", PC[row]);
-                            else begin $display(" FAILURE: 0x%h", PC[row]); return 1; end
-                            // $display("addr [dut, gold] = [%h, %h]", cpu_dut.my_data_mem.addr_internal_mirror, ((REG_FILE[3][rs1_v] + imm_s_v) - LOWEST_DATA_MEM_ADDR));
-                            // $display("data [dut, gold] = [%h, %h]", cpu_dut.my_data_mem.data_out_mem[15:0], DATA_MEM[3][local_addr>>2][15:0]);
-                        end else if(local_addr[1:0] == 2'd2) begin
-                            assert(cpu_dut.my_data_mem.data_out_mem[31:16] == DATA_MEM[3][local_addr>>2][31:16]) $display(" Success: 0x%h", PC[row]);
-                            else begin $display(" FAILURE: 0x%h", PC[row]); return 1; end
-                            // $display("addr [dut, gold] = [%h, %h]", cpu_dut.my_data_mem.addr_internal_mirror, ((REG_FILE[3][rs1_v] + imm_s_v) - LOWEST_DATA_MEM_ADDR));
-                            // $display("data [dut, gold] = [%h, %h]", cpu_dut.my_data_mem.data_out_mem[31:16], DATA_MEM[3][local_addr>>2][31:16]);
-                        end else begin
-                            $error("Illegal SH address");
-                        end
+                        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
                         // $display("data [dut, gold] = [%h, %h]", cpu_dut.my_data_mem.data_out_mem, DATA_MEM[3][((REG_FILE[3][rs1_v] + imm_s_v) - LOWEST_DATA_MEM_ADDR)>>2]);
-                        // $display("addr [dut, gold] = [%h, %h]", cpu_dut.my_data_mem.addr_internal_mirror, ((REG_FILE[3][rs1_v] + imm_s_v) - LOWEST_DATA_MEM_ADDR));
-                        // assert(cpu_dut.my_data_mem.data_out_mem == DATA_MEM[3][((REG_FILE[3][rs1_v] + imm_s_v) - LOWEST_DATA_MEM_ADDR)>>2]) $display(" Success: 0x%h", PC[row]);
-                        // else begin $display(" FAILURE: 0x%h", PC[row]); return 1; end
+                        // $display("addr [dut, gold] = [%h, %h]", cpu_dut.my_data_mem.addr_internal_mirror>>2, ((REG_FILE[3][rs1_v] + imm_s_v) - LOWEST_DATA_MEM_ADDR)>>2);
+                        assert(cpu_dut.my_data_mem.addr_internal_mirror>>2 == ((REG_FILE[3][rs1_v] + imm_s_v) - LOWEST_DATA_MEM_ADDR)>>2) $display(" Success: 0x%h", PC[row]);
+                        else begin $display(" FAILURE: 0x%h", PC[row]); return 1; end     
+                        assert(cpu_dut.my_data_mem.data_out_mem == DATA_MEM[3][((REG_FILE[3][rs1_v] + imm_s_v) - LOWEST_DATA_MEM_ADDR)>>2]) $display(" Success: 0x%h", PC[row]);
+                        else begin $display(" FAILURE: 0x%h", PC[row]); return 1; end
                         
                     end
 
@@ -2002,34 +2012,38 @@ module top_riscv_cpu_v2_1();
 
                     if(row == 3) begin
 
-                        local_addr = ((REG_FILE[3][rs1_v] + imm_s_v) - LOWEST_DATA_MEM_ADDR);
+                        // local_addr = ((REG_FILE[3][rs1_v] + imm_s_v) - LOWEST_DATA_MEM_ADDR);
+                        // WARING IF YOU USE THIS CODE AGAIN THEN ADD ADDR ASSERTION
+                        // if(local_addr[1:0] == 2'd0) begin
+                        //     assert(cpu_dut.my_data_mem.data_out_mem[7:0] == DATA_MEM[3][local_addr>>2][7:0]) $display(" Success: 0x%h", PC[row]);
+                        //     else begin $display(" FAILURE: 0x%h", PC[row]); return 1; end
+                        //     // $display("addr [dut, gold] = [%h, %h]", cpu_dut.my_data_mem.addr_internal_mirror, ((REG_FILE[3][rs1_v] + imm_s_v) - LOWEST_DATA_MEM_ADDR));
+                        //     // $display("data [dut, gold] = [%h, %h]", cpu_dut.my_data_mem.data_out_mem[7:0], DATA_MEM[3][local_addr>>2][7:0]);
+                        // end else if(local_addr[1:0] == 2'd1) begin
+                        //     assert(cpu_dut.my_data_mem.data_out_mem[15:8] == DATA_MEM[3][local_addr>>2][15:8]) $display(" Success: 0x%h", PC[row]);
+                        //     else begin $display(" FAILURE: 0x%h", PC[row]); return 1; end
+                        //     // $display("addr [dut, gold] = [%h, %h]", cpu_dut.my_data_mem.addr_internal_mirror, ((REG_FILE[3][rs1_v] + imm_s_v) - LOWEST_DATA_MEM_ADDR));
+                        //     // $display("data [dut, gold] = [%h, %h]", cpu_dut.my_data_mem.data_out_mem[15:8], DATA_MEM[3][local_addr>>2][15:8]);
+                        // end else if(local_addr[1:0] == 2'd2) begin
+                        //     assert(cpu_dut.my_data_mem.data_out_mem[23:16] == DATA_MEM[3][local_addr>>2][23:16]) $display(" Success: 0x%h", PC[row]);
+                        //     else begin $display(" FAILURE: 0x%h", PC[row]); return 1; end
+                        //     // $display("addr [dut, gold] = [%h, %h]", cpu_dut.my_data_mem.addr_internal_mirror, ((REG_FILE[3][rs1_v] + imm_s_v) - LOWEST_DATA_MEM_ADDR));
+                        //     // $display("data [dut, gold] = [%h, %h]", cpu_dut.my_data_mem.data_out_mem[23:16], DATA_MEM[3][local_addr>>2][23:16]);
+                        // end else if(local_addr[1:0] == 2'd3) begin
+                        //     assert(cpu_dut.my_data_mem.data_out_mem[31:24] == DATA_MEM[3][local_addr>>2][31:24]) $display(" Success: 0x%h", PC[row]);
+                        //     else begin $display(" FAILURE: 0x%h", PC[row]); return 1; end
+                        //     // $display("addr [dut, gold] = [%h, %h]", cpu_dut.my_data_mem.addr_internal_mirror, ((REG_FILE[3][rs1_v] + imm_s_v) - LOWEST_DATA_MEM_ADDR));
+                        //     // $display("data [dut, gold] = [%h, %h]", cpu_dut.my_data_mem.data_out_mem[31:24], DATA_MEM[3][local_addr>>2][31:24]);
+                        // end
 
-                        if(local_addr[1:0] == 2'd0) begin
-                            assert(cpu_dut.my_data_mem.data_out_mem[7:0] == DATA_MEM[3][local_addr>>2][7:0]) $display(" Success: 0x%h", PC[row]);
-                            else begin $display(" FAILURE: 0x%h", PC[row]); return 1; end
-                            // $display("addr [dut, gold] = [%h, %h]", cpu_dut.my_data_mem.addr_internal_mirror, ((REG_FILE[3][rs1_v] + imm_s_v) - LOWEST_DATA_MEM_ADDR));
-                            // $display("data [dut, gold] = [%h, %h]", cpu_dut.my_data_mem.data_out_mem[7:0], DATA_MEM[3][local_addr>>2][7:0]);
-                        end else if(local_addr[1:0] == 2'd1) begin
-                            assert(cpu_dut.my_data_mem.data_out_mem[15:8] == DATA_MEM[3][local_addr>>2][15:8]) $display(" Success: 0x%h", PC[row]);
-                            else begin $display(" FAILURE: 0x%h", PC[row]); return 1; end
-                            // $display("addr [dut, gold] = [%h, %h]", cpu_dut.my_data_mem.addr_internal_mirror, ((REG_FILE[3][rs1_v] + imm_s_v) - LOWEST_DATA_MEM_ADDR));
-                            // $display("data [dut, gold] = [%h, %h]", cpu_dut.my_data_mem.data_out_mem[15:8], DATA_MEM[3][local_addr>>2][15:8]);
-                        end else if(local_addr[1:0] == 2'd2) begin
-                            assert(cpu_dut.my_data_mem.data_out_mem[23:16] == DATA_MEM[3][local_addr>>2][23:16]) $display(" Success: 0x%h", PC[row]);
-                            else begin $display(" FAILURE: 0x%h", PC[row]); return 1; end
-                            // $display("addr [dut, gold] = [%h, %h]", cpu_dut.my_data_mem.addr_internal_mirror, ((REG_FILE[3][rs1_v] + imm_s_v) - LOWEST_DATA_MEM_ADDR));
-                            // $display("data [dut, gold] = [%h, %h]", cpu_dut.my_data_mem.data_out_mem[23:16], DATA_MEM[3][local_addr>>2][23:16]);
-                        end else if(local_addr[1:0] == 2'd3) begin
-                            assert(cpu_dut.my_data_mem.data_out_mem[31:24] == DATA_MEM[3][local_addr>>2][31:24]) $display(" Success: 0x%h", PC[row]);
-                            else begin $display(" FAILURE: 0x%h", PC[row]); return 1; end
-                            // $display("addr [dut, gold] = [%h, %h]", cpu_dut.my_data_mem.addr_internal_mirror, ((REG_FILE[3][rs1_v] + imm_s_v) - LOWEST_DATA_MEM_ADDR));
-                            // $display("data [dut, gold] = [%h, %h]", cpu_dut.my_data_mem.data_out_mem[31:24], DATA_MEM[3][local_addr>>2][31:24]);
-                        end
+                        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
                         // $display("data [dut, gold] = [%h, %h]", cpu_dut.my_data_mem.data_out_mem, DATA_MEM[3][((REG_FILE[3][rs1_v] + imm_s_v) - LOWEST_DATA_MEM_ADDR)>>2]);
-                        // $display("addr [dut, gold] = [%h, %h]", cpu_dut.my_data_mem.addr_internal_mirror, ((REG_FILE[3][rs1_v] + imm_s_v) - LOWEST_DATA_MEM_ADDR));
-                        // assert(cpu_dut.my_data_mem.data_out_mem == DATA_MEM[3][((REG_FILE[3][rs1_v] + imm_s_v) - LOWEST_DATA_MEM_ADDR)>>2]) $display(" Success: 0x%h", PC[row]);
-                        // else begin $display(" FAILURE: 0x%h", PC[row]); return 1; end
+                        // $display("addr [dut, gold] = [%h, %h]", cpu_dut.my_data_mem.addr_internal_mirror>>2, ((REG_FILE[3][rs1_v] + imm_s_v) - LOWEST_DATA_MEM_ADDR)>>2);
+                        assert(cpu_dut.my_data_mem.addr_internal_mirror>>2 == ((REG_FILE[3][rs1_v] + imm_s_v) - LOWEST_DATA_MEM_ADDR)>>2) $display(" Success: 0x%h", PC[row]);
+                        else begin $display(" FAILURE: 0x%h", PC[row]); return 1; end     
+                        assert(cpu_dut.my_data_mem.data_out_mem == DATA_MEM[3][((REG_FILE[3][rs1_v] + imm_s_v) - LOWEST_DATA_MEM_ADDR)>>2]) $display(" Success: 0x%h", PC[row]);
+                        else begin $display(" FAILURE: 0x%h", PC[row]); return 1; end
                         
                     end
 
