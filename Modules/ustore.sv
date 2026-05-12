@@ -100,8 +100,10 @@ always_comb begin
     6'd44: sig = 35'b00000011001000011000000000000000000; // jump_en alu_sel_add alu_use_im dbus_sel_pc_plus_4 reg_file_wr_en
 // ==== INSTRUCTION: EBREAK ====
     6'd45: sig = 35'b01000000000000000000000000000000000; // finish
-// ==== LABEL: UD_fault ====
+// ==== INSTRUCTION: CUSTOM-0 ====
     6'd46: sig = 35'b10000000000000000000000000000000000; // halt
+// ==== LABEL: UD_fault ====
+    6'd47: sig = 35'b10000000000000000000000000000000000; // halt
     default: sig = 35'd0;
   endcase
 end

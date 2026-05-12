@@ -1099,9 +1099,8 @@ module top_riscv_cpu_v2_1();
                 RD[1] <= rd;
                 IM[1] <= imm_u;
 
-            end else if (INSTR_FLUSH == 32'b00000000000100000000000001110011) begin
+            end else if (INSTR_FLUSH == 32'b00000000000100000000000001110011) begin //-----EBREAK----------
                 if(show_posedge_golden_calc) $display("\tIdentified as EBREAK.");
-
                 PC_ASYNC <= PC_ASYNC + 32'h4;
 
                 //first entry in the matrix
@@ -1113,6 +1112,19 @@ module top_riscv_cpu_v2_1();
                 RD[1] <= 'x;
                 IM[1] <= 'x;
 
+            end else if (opcode == 7'b0001011) begin //-----CUSTOM-0(Crash)-------(generates halt signal to cause a crash in dut)
+                if(show_posedge_golden_calc) $display("\tIdentified as CUSTOM-0(Crash).");
+                PC_ASYNC <= PC_ASYNC + 32'h4;
+
+                //first entry in the matrix
+                PC[1] <= PC_ASYNC;
+                PC_TARGET[1] <= PC_ASYNC + 4;
+                INSTR[1] <= INSTR_FLUSH;
+                RS1[1] <= 'x;
+                RS2[1] <= 'x;
+                RD[1] <= 'x;
+                IM[1] <= 'x;
+            
             end else begin
                 //UNKNOWN ------------------------------
                 if(show_posedge_golden_calc) $display("\t<### WARNING: Instruction type not currently recognized by TB ###>");
@@ -1149,7 +1161,7 @@ module top_riscv_cpu_v2_1();
             //$write("Checking instr allignment : ");
 
             assert(cpu_dut.INSTR_F == INSTR_FLUSH/*cpu_dut.FAKE_INSTR_F*/)// $write("OK : [real, fake] = [%h, %h]", cpu_dut.INSTR_F, INSTR_FLUSH/*cpu_dut.FAKE_INSTR_F*/); //$write("OK");
-            else begin $error("fail : [real, fake] = [%h, %h]", cpu_dut.INSTR_F, INSTR_FLUSH/*cpu_dut.FAKE_INSTR_F*/); end
+            else begin $error("fail : INSTR[dut, gold] = [%h, %h]", cpu_dut.INSTR_F, INSTR_FLUSH/*cpu_dut.FAKE_INSTR_F*/); end
             //$display();
         end
     end
@@ -1199,14 +1211,13 @@ module top_riscv_cpu_v2_1();
         if (ohalt == 1'b1) begin //HALT SIGNAL --------------------------------------------------------------
             $error("Recieved halt signal. Pausing verification.");
             $display("Program counter: 0x%h", cpu_dut.PC);
-            reg_gold_post_write_back_dump();
             $stop(); //pauses verification if CPU outputs halt signal
             $finish();
         end
 
         if(ofinish == 1'b1) begin
             $display("EBREAK called and finish singal recieved. Ending Verification...");
-            $finish(17);
+            $finish();
         end
     end
 
@@ -2168,13 +2179,23 @@ module top_riscv_cpu_v2_1();
 
                 end
 
-            end else if (INSTR[row] == 32'b00000000000100000000000001110011) begin
+            end else if (INSTR[row] == 32'b00000000000100000000000001110011) begin //-----EBREAK----------
 
                 if(show_negedge_verify_row) $write("\tIdentified as EBREAK:");
 
-                //nothing
+                if(row == 1) begin
+                    assert(cpu_dut.finish) $display(" Success: 0x%h", PC[row]);
+                    else begin $display(" FAILURE: 0x%h", PC[row]); return 1; end
+                end
 
-                if(row == 5) $display(" Success: 0x%h", PC[row]);
+            end else if (opcode_v == 7'b0001011) begin //-----CUSTOM-0(Crash)-------(generates halt signal to cause a crash in dut)
+
+                if(show_negedge_verify_row) $write("\tIdentified as CUSTOM-0(Crash):");
+
+                if(row == 1) begin
+                    assert(cpu_dut.halt) $display(" Success: 0x%h", PC[row]);
+                    else begin $display(" FAILURE: 0x%h", PC[row]); return 1; end
+                end
 
             end else begin
                 //UNKNOWN ------------------------------

@@ -10,6 +10,9 @@
     #define HEADER_FLAGS_FIELD_SIZE 4
     #define FOOTER_SIZE 4
 
+    //crash()
+    #define HALT() asm volatile(".word 0x8000000B")
+
     /* TODO, use ifdef to include stdlib malloc instead
     block overall byte fields
     HEADER
@@ -74,7 +77,7 @@
             //inc header_ptr to next header if occupied
             }header_ptr += HEADER_TOTAL_SIZE + *(size_t*)header_ptr + FOOTER_SIZE;
 
-        }return NULL; //reached end of heap, could not find free memory
+        }HALT(); //reached end of heap, could not find free memory, cause crash with halt sig
     }
 
     void* calloc(size_t count, size_t element_size){
