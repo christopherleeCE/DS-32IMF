@@ -124,10 +124,14 @@ const uint16_t frame[] = {FULL_FRAME};
 
 int main(){
 
-    int x = 5;
-    int y = 7;
-    int z = x - 2*y + 10;
+    int* x = malloc(sizeof(int));
+    int* y = malloc(sizeof(int));
+    int* z = malloc(sizeof(int));
 
-    return tb_return(z, z);
+    *x = 5;
+    *y = 7;
+    *z = *x - 2*(*y) + 10;
+
+    return tb_return(*z, *z);
 
 }

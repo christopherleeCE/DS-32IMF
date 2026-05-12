@@ -13,7 +13,7 @@
     //crash()
     #define HALT() asm volatile(".word 0x8000000B")
 
-    /* TODO, use ifdef to include stdlib malloc instead
+    /*
     block overall byte fields
     HEADER
         >size field (4bytes)
@@ -44,7 +44,7 @@
 
         bool same_size, valid_bigger_size;
 
-        while(heap_end > header_ptr){ //todo fix this to more safe
+        while(heap_end > header_ptr){
 
             same_size = (*(size_t*)(header_ptr) == payload_size);
             valid_bigger_size = (*(size_t*)(header_ptr) >= (payload_size + HEADER_TOTAL_SIZE + FOOTER_SIZE));

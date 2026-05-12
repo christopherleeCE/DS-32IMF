@@ -16,7 +16,6 @@ gold[5] then its compared against the dut, which at this point that addi in the 
 Current semester
 ================
 TODO fix vga overflow
-TODO make a crash for malloc
 
 Out of Semester
 ===============
