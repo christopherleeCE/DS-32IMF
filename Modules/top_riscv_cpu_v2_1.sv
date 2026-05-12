@@ -15,10 +15,8 @@ gold[5] then its compared against the dut, which at this point that addi in the 
 
 Current semester
 ================
-holden TODO bump up mem capacies cus why not we got like 180kb or sumthin like that (LOL)
 TODO fix vga overflow
-TODO mem expansion, (aliasing, golden, dut, linker, stack setup, heap setup, addr normalization) and prob more...
-TODO assess data constrain risks, make a crash for malloc, find out if there is a way to have a variable heap len
+TODO make a crash for malloc
 
 Out of Semester
 ===============

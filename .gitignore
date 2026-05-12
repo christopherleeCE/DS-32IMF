@@ -32,6 +32,7 @@ Modules/dump/imem_dut_dump.hex
 Modules/dump/imem_gold_dump.hex
 Modules/dump/imem_dut_dump.log
 Modules/dump/imem_gold_dump.log
+Modules/dump/dump.map
 Programs/directed/lib/libdrysoup.a
 Programs/directed/lib/libdrysoup_x86.a
 Scripts/temp.ps1

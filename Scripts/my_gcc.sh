@@ -108,6 +108,7 @@ elif [ "$mode" = "gcc" ] ; then
     -fno-builtin \
     -ffreestanding \
     -T linker.ld \
+    -Wl,-Map=./dump/dump.map \
     $define \
     "$file" \
     -I../Programs/directed/lib \

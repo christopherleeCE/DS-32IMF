@@ -39,7 +39,8 @@ def parse_hex(input_file, output_file):
     for word in words:
         if(addr % 16 == 0):
             tmp_lines.append("\n")
-        tmp_lines.append(f"0x[{addr+3:04X} {addr+2:04X} {addr+1:04X} {addr:04X}] : 0x[{word[0:2]} {word[2:4]} {word[4:6]} {word[6:8]}] ")
+        #tmp_lines.append(f"0x[{addr+3:04X} {addr+2:04X} {addr+1:04X} {addr:04X}] : 0x[{word[0:2]} {word[2:4]} {word[4:6]} {word[6:8]}]")
+        tmp_lines.append(f"0x[{addr:04X}] : 0x[{word[0:2]} {word[2:4]} {word[4:6]} {word[6:8]}]")
         tmp_lines.append("\t")
         addr = addr + 4
 

@@ -119,16 +119,6 @@ int main(){
     for(int ii = 0; ii < (sizeof(frame)/sizeof(frame[0])); ++ii){
         *(frame_buffer_ptr+ii) = frame[ii];
     }
-    // for(int ii = (sizeof(frame)/sizeof(frame[0])); ii < (sizeof(frame)/sizeof(frame[0]))*2; ++ii){
-    //     *(frame_buffer_ptr+ii) = frame[ii-9600];
-    // }
-    // *(frame_buffer_ptr + 9600) = R;
-    // *(frame_buffer_ptr + 9601) = R;
-    // *(frame_buffer_ptr + 9602) = R;
-    // *(frame_buffer_ptr + 9603) = R;
-    // *(frame_buffer_ptr + 9604) = R;
-    // *(frame_buffer_ptr + 9605) = R;
-
 
     return tb_return((int)frame[0], (int)frame[0]);
 
