@@ -7,9 +7,9 @@ $OldPath = Get-Location
 Set-Location "C:\Users\Chris\Documents\Quartus\Projects\new_capstone"
 
 if($build){
-    & "..\..\Questa Projects\Prototype\Git_Home\Scripts\build_quartus.ps1" new_capstone 
+    & "C:\Users\Chris\Documents\Quartus\Questa Projects\DS-32IMF\Scripts\build_quartus.ps1" new_capstone 
 }if($deploy){
-    & "..\..\Questa Projects\Prototype\Git_Home\Scripts\deploy_fpga.ps1" new_capstone -y
+    & "C:\Users\Chris\Documents\Quartus\Questa Projects\DS-32IMF\Scripts\deploy_fpga.ps1" new_capstone -y
 }
 
 Set-Location $OldPath
