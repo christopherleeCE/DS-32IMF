@@ -109,16 +109,10 @@ TWENTY_LINES \
 TWENTY_LINES \
 TWENTY_LINES \
 
-//ensures this stays in .rodata, runs much faster
+__attribute__((section(".vram"), used))
 const uint16_t frame[] = {FULL_FRAME};
 
 int main(){
-
-    uint16_t* frame_buffer_ptr = (uint16_t*)0x22A00;
-
-    for(int ii = 0; ii < (sizeof(frame)/sizeof(frame[0])); ++ii){
-        *(frame_buffer_ptr+ii) = frame[ii];
-    }
 
     return tb_return((int)frame[0], (int)frame[0]);
 
