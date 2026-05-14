@@ -144,12 +144,20 @@ riscv64-unknown-elf-objdump -d program.elf
 riscv64-unknown-elf-objcopy \
   -O binary \
   --gap-fill 0x00 \
-  --pad-to 0x18000 \
-  -j .text program.elf instr.bin 
+  --pad-to 0x2C000 \
+  program.elf fullimage.bin
 
+#splits the .elf into imem and dmem .bins
+dd if=fullimage.bin of=instr.bin bs=96K count=1
+dd if=fullimage.bin of=data.bin bs=96K skip=1
+
+# riscv64-unknown-elf-objcopy \
+#   -O binary \
+#   --gap-fill 0x00 \
+#   --pad-to 0x18000 \
+#   -j .text program.elf instr.bin 
 
 hexdump -v -e '1/4 "%08x\n"' instr.bin > instruction_memory.hex #reversing display order of bytes order for .txt
-
 
 # --only-section=.bss \ was removed as it was
 # causeing an error with the obj copy, .bss is just
@@ -158,13 +166,15 @@ hexdump -v -e '1/4 "%08x\n"' instr.bin > instruction_memory.hex #reversing displ
 # with or without it
 
 #not sure if the --only-section here will always grab everythign
-riscv64-unknown-elf-objcopy \
-  -O binary \
-  --only-section=.rodata \
-  --only-section=.data \
-  --gap-fill 0x00 \
-  --pad-to 0x2C000 \
-  program.elf data.bin
+# riscv64-unknown-elf-objcopy \
+#   -O binary \
+#   -j .rodata \
+#   -j .data \
+#   -j .vram \
+#   -j .tram \
+#   --gap-fill 0x00 \
+#   --pad-to 0x2C000 \
+#   program.elf data.bin
 
 truncate -s 81920 data.bin #fills data.bin with 80kb of zeros if empty
 hexdump -v -e '1/4 "%08x\n"' data.bin > data_memory.hex #reversing display order of bytes for .txt

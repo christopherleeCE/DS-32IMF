@@ -141,6 +141,7 @@ module top_fpga(
     logic [31:0] portb_q, portb_addr;
     logic b_loading, b_incing, b_done;
     logic [7:0] seq_eng_cnt, max_arr_index;
+    logic delay;
 
     logic ascii_mode;
     assign ascii_mode = switches[6:5] == 2'b01;
@@ -202,6 +203,7 @@ module top_fpga(
             b_loading <= 1'b1;
             b_incing <= '0;
             b_done <= '0;
+            delay <= 1'b1;
 
             seq_eng_cnt <= '0;
             max_arr_index <= '0;
@@ -215,6 +217,7 @@ module top_fpga(
         end else if(b_loading) begin
             b_loading <= '0;
             b_incing <= 1'b1;
+            delay <= 1'b1;
 
             max_arr_index <= a0[31:24];
             portb_addr <= {8'b0, a0[23:0]};
@@ -222,11 +225,12 @@ module top_fpga(
         end else if(b_incing) begin
             b_incing <= ~(seq_eng_cnt == max_arr_index);
             b_done <= (seq_eng_cnt == max_arr_index);
+            delay <= 1'b0;
 
             seq_eng_cnt <= seq_eng_cnt + 1'b1;
             portb_addr <= portb_addr + ((ascii_mode) ? 32'h1 : 32'h4);
 
-            ascii_val_ff_train[0] <= portb_q[7:0];
+            ascii_val_ff_train[0] <= delay ? '0 : portb_q[7:0];
             for(int ii = 1; ii < 6; ii++) begin
                 ascii_val_ff_train[ii] <= ascii_val_ff_train[ii-1];
             end
@@ -281,7 +285,7 @@ module top_fpga(
         case(switches[6:5])
 
             2'd0 : ret_val = a0;
-            2'd1 : ret_val = a0; //gets overwritten down the line, outputs ascii instead
+            2'd1 : ret_val = portb_q; //gets overwritten down the line, outputs ascii instead
             2'd2 : ret_val = portb_q;
             2'd3 : ret_val = portb_addr;
 

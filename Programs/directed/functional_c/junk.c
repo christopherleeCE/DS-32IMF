@@ -120,18 +120,34 @@ int accumulate(int n) {
     return sum;
 }
 
-const uint16_t frame[] = {FULL_FRAME};
+__attribute__((section(".vram"), used))
+uint16_t frame[] = {FULL_FRAME};
+
+__attribute__((section(".tram"), used))
+char text_buffer[368] = "TEXTBUFFER";
+
+// int bss_int;
+// char bss_str[16];
+// float bss_big_float_arr[200];
+
+// int data_int = 16;
+// char data_str[16] = "ram_exanple";
+// float data_big_float_arr[200] = {1.0};
+
+// const int rodata_int = 32;
+// const char rodata_str[16] = "rom_exanple";
+// const float rodata_big_float_arr[200] = {1.0};
 
 int main(){
 
-    int* x = malloc(sizeof(int));
-    int* y = malloc(sizeof(int));
-    int* z = malloc(sizeof(int));
+    // int* x = malloc(sizeof(int));
+    // int* y = malloc(sizeof(int));
+    // int* z = malloc(sizeof(int));
 
-    *x = 5;
-    *y = 7;
-    *z = *x - 2*(*y) + 10;
+    // *x = 5;
+    // *y = 7;
+    // *z = *x - 2*(*y) + 10;
 
-    return tb_return(*z, *z);
+    return tb_return(text_buffer[0], pack_ptr((uint32_t*)text_buffer, sizeof(text_buffer), true));
 
 }

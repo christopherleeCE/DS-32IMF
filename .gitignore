@@ -5,6 +5,7 @@ Modules/sim.log
 Modules/diff.log
 Modules/data.bin
 Modules/instr.bin
+Modules/fullimage.bin
 Modules/data.mif
 Modules/instr.mif
 Modules/data.ver
