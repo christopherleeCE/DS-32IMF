@@ -10,6 +10,7 @@ Modules/data.mif
 Modules/instr.mif
 Modules/data.ver
 Modules/instr.ver
+Modules/font.ver
 Modules/program_asm.o
 Modules/program_c.o
 Modules/program.o

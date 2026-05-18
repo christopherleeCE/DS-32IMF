@@ -55,6 +55,7 @@ module data_memory
    logic [15:0] data_half_rb;
    logic [31:0] readDataPreMaskb;
    logic addr_byte_internal_mirrorb, addr_half_internal_mirrorb, zero_extend_internal_mirrorb;
+   logic writeEn_internal_mirror;
 
    /* < Writing to MEM > */ //====================================================================================================
 

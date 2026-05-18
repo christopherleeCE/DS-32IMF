@@ -16,6 +16,11 @@ gold[5] then its compared against the dut, which at this point that addi in the 
 Current semester
 ================
 TODO fix vga overflow
+TODO imp comp green in text mode
+TODO reimp portb sel after ecall imp
+TODO clean up tbuff section declarations
+TODO imp ecall for text/graphicmode
+TODO clean up modules directory
 
 Out of Semester
 ===============
@@ -111,7 +116,7 @@ module top_riscv_cpu_v2_1();
     parameter int FIFTY_MHZ_PERIOD = 20;
     parameter int INSTR_MEM_EC = 24576;             //96kb
     parameter int DATA_MEM_EC = 20480;              //80kb
-    parameter int LOWEST_DATA_MEM_ADDR = 32'h18000; //top of 96kb
+    localparam logic [31:0] LOWEST_DATA_MEM_ADDR = 32'h18000; //top of 96kb
 
     int rand_delay;
 

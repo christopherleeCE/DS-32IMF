@@ -46,7 +46,9 @@ module riscv_cpu_v2(
     //this assigns the SIG's declarred in microcode to corresponding outputs of the ustore
     `include "sig_declare.inc"
 
-    parameter int LOWEST_DATA_MEM_ADDR = 32'h18000;
+    localparam logic [31:0] LOWEST_DATA_MEM_ADDR = 32'h18000;
+    localparam logic [31:0] VRAM_BOTTOM_ADDR = 32'hAA00;
+    localparam logic [31:0] TRAM_BOTTOM_ADDR = 32'hA890;
 
     //new terminology:
     // f=fetch, d=decode, e=execute, m=memory, w=writeback
@@ -208,7 +210,7 @@ module riscv_cpu_v2(
     logic [6-1:0] frame_id; //frame num/60
     logic hs;       //horz sync sig
     logic vs;       //vert sync sig
-    logic [31:0] VRAM_ADDR;
+    logic [31:0] VRAM_ADDR, TRAM_ADDR;
     logic vga_clk;
 
     //gradually stop pipeline advance as halt moves through pipeline
@@ -616,18 +618,86 @@ module riscv_cpu_v2(
         .rst(rst)
     );
 
+
+    logic [9:0] tbuf_addr;
+    logic [2:0] char_pix_x, char_pix_y;
+    logic whitespace_en;
+
+    tbuf_ctrl my_tbuf_ctrl(
+        .norm_pix_x(pix_x[9:2]),
+        .norm_pix_y(pix_y[9:2]),
+        .pix_vis,
+        .clk(vga_clk),
+        .rst(~((pix_x[9:2] == '0) && (pix_y[9:2] == '0))),
+        .char_pix_x(char_pix_x),
+        .char_pix_y(char_pix_y),
+        .tbuf_addr(tbuf_addr),
+        .whitespace_en
+    );
+
+    logic [7:0] ascii_val, postff_tbuf_addr;
+    logic hs_zm1, vs_zm1, hs_zm2, vs_zm2, hs_zm3, vs_zm3, hs_zm4, vs_zm4, hs_zm5, vs_zm5, hs_zm6, vs_zm6;
+
+    always_ff @(posedge vga_clk) begin
+        postff_tbuf_addr <= tbuf_addr;
+        hs_zm1 <= hs;
+        vs_zm1 <= vs;
+        hs_zm2 <= hs_zm1;
+        vs_zm2 <= vs_zm1;
+        hs_zm3 <= hs_zm2;
+        vs_zm3 <= vs_zm2;
+        hs_zm4 <= hs_zm3;
+        vs_zm4 <= vs_zm3;
+        hs_zm5 <= hs_zm4;
+        vs_zm5 <= vs_zm4;
+        hs_zm6 <= hs_zm5;
+        vs_zm6 <= vs_zm5;
+    end
+
+    // assign ascii_val = (tbuf_addr < 10'hFF) ? postff_tbuf_addr[7:0] : 8'b0;
+    // assign ascii_val = (tbuf_addr < 10'hFF) ? tbuf_addr[7:0] : 8'b0;
+    assign ascii_val = portb_q[7:0];
+
+    logic [7:0] sprite_start_ptr;
+
+    font_lut my_font_lut(
+        .ascii_val,
+        .sprite_start_ptr
+    );
+
+    logic [10:0] sprite_ptr;
+    assign sprite_ptr = sprite_start_ptr*8'd7 + char_pix_y;
+
+    logic [7:0] pixel_row;
+
+    font_table my_font_table(
+        .aclr(~rst),
+	    .address(sprite_ptr),
+	    .clock(vga_clk),
+	    .q(pixel_row)
+    );
+
+    logic [4:0] pixel_row_reversed;
+    logic text_pixel;
+    assign pixel_row_reversed = {pixel_row[0], pixel_row[1], pixel_row[2], pixel_row[3], pixel_row[4]};
+    assign text_pixel = pixel_row_reversed[char_pix_x];
+
     //synchronous-read data mem, so inputs come straight from EX stage
     assign DATA_MEM_ADDR = ALU - LOWEST_DATA_MEM_ADDR;
     assign DATA_MEM_ADDR_B = portb_addr - LOWEST_DATA_MEM_ADDR;
-    assign VRAM_ADDR = (((pix_y>>2)*32'd160 + (pix_x>>2)) << 1) + 32'hAA00;// + LOWEST_DATA_MEM_ADDR;
+    assign VRAM_ADDR = (((pix_y>>2)*32'd160 + (pix_x>>2)) << 1) + 32'hAA00;
+    assign TRAM_ADDR = 32'hA890 + tbuf_addr;
     //assign portb_q = pix_vis ? VRAM_ADDR : '0;
 
-    assign portb_rst_mux = portb_extern_en ? portb_rst : rst;
-    assign PORTB_ADDR_MUX = portb_extern_en ? DATA_MEM_ADDR_B : VRAM_ADDR;
-    assign portb_clk_mux = portb_extern_en ? portb_clk : clk_50;
-    assign portb_addr_byte_mux = portb_extern_en ? portb_addr_byte : 1'b0;
-    assign portb_addr_half_mux = portb_extern_en ? portb_addr_half : 1'b1;
-    assign portb_zero_extend_mux = portb_extern_en ? portb_zero_extend : 1'b1;
+    logic graphic_mode;
+    assign graphic_mode = portb_extern_en;
+
+    assign portb_rst_mux = '0 /*portb_extern_en*/          ? portb_rst         : (rst);
+    assign PORTB_ADDR_MUX = '0 /*portb_extern_en*/         ? DATA_MEM_ADDR_B   : ((graphic_mode ? VRAM_ADDR : TRAM_ADDR));
+    assign portb_clk_mux = '0 /*portb_extern_en*/          ? portb_clk         : (vga_clk);
+    assign portb_addr_byte_mux = '0 /*portb_extern_en*/    ? portb_addr_byte   : ((graphic_mode ? '0 : 1'b1));
+    assign portb_addr_half_mux = '0 /*portb_extern_en*/    ? portb_addr_half   : ((graphic_mode ? 1'b1 : '0));
+    assign portb_zero_extend_mux = '0 /*portb_extern_en*/  ? portb_zero_extend : (1'b1);
 
     data_memory #(
         .BIT_WIDTH(32)
@@ -643,16 +713,16 @@ module riscv_cpu_v2(
         .zero_extend(zero_extend_mem_E),
         .portb_rst(portb_rst_mux),
         .portb_addr((PORTB_ADDR_MUX < 32'h14000) ? PORTB_ADDR_MUX : '0), //a horrible way to supress altsyncram OOB warnings in the sim.log
-        .portb_clk(portb_clk_mux),
+        .portb_clk(vga_clk),
         .portb_q(portb_q),
         .portb_addr_byte(portb_addr_byte_mux),
         .portb_addr_half(portb_addr_half_mux),
         .portb_zero_extend(portb_zero_extend_mux)
     );
 
-    assign VGA_RED =   pix_vis ? portb_q[3:0]  : '0;
-    assign VGA_GREEN = pix_vis ? portb_q[7:4]  : '0;
-    assign VGA_BLUE =  pix_vis ? portb_q[11:8] : '0;
+    assign VGA_RED =   pix_vis ? (graphic_mode ? (portb_q[3:0])  : (whitespace_en ? 4'h0 : ({4{1'b0}}))) : '0;
+    assign VGA_GREEN = pix_vis ? (graphic_mode ? (portb_q[7:4])  : (whitespace_en ? 4'h0 : ({4{text_pixel}}))) : '0;
+    assign VGA_BLUE =  pix_vis ? (graphic_mode ? (portb_q[11:8]) : (whitespace_en ? 4'h0 : ({4{1'b0}}))) : '0;
     assign VGA_HS = hs;
     assign VGA_VS = vs;
 

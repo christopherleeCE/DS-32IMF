@@ -123,8 +123,13 @@ int accumulate(int n) {
 __attribute__((section(".vram"), used))
 uint16_t frame[] = {FULL_FRAME};
 
-__attribute__((section(".tram"), used))
-char text_buffer[368] = "TEXTBUFFER";
+__attribute__((section(".tram"), used))                    
+char text_buffer[368] = {
+  /*"##########################"*/ 
+    "abcdefghijklmnopqrstuvwxyz"
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+  /*"##########################"*/ 
+};
 
 int bss_int;
 char bss_str[16];
@@ -151,6 +156,19 @@ int main(){
     free(x);
     free(y);
     free(z);
+
+    int upper = (160*120)/5;
+    // for(int ii = 0; ii < upper; ++ii){
+
+    // }
+
+    for(int ii = 0; ii < 364; ++ii){
+        if(ii < 256){
+            text_buffer[ii] = (char)ii;
+        }else{
+            text_buffer[ii] = 0x9D;
+        }
+    }
 
     return tb_return(text_buffer[0], pack_ptr((uint32_t*)text_buffer, sizeof(text_buffer), true));
 
