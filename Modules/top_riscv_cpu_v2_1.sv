@@ -19,8 +19,6 @@ TODO fix vga overflow
 TODO imp comp green in text mode
 TODO reimp portb sel after ecall imp
 TODO imp ecall for text/graphicmode
-TODO clean up modules directory
-TODO try to imp the fancy LUT
 TODO printf
 .
 .
