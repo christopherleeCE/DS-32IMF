@@ -213,6 +213,36 @@ module riscv_cpu_v2(
     logic [31:0] VRAM_ADDR, TRAM_ADDR;
     logic vga_clk;
 
+    logic [9:0] tbuf_addr;
+    logic [2:0] char_pix_x, char_pix_y;
+    logic whitespace_en;
+    logic [7:0] ascii_val;//, postff_tbuf_addr;
+    logic [7:0] sprite_start_ptr;
+    logic [10:0] sprite_ptr;
+    logic [7:0] pixel_row;  //8bits, only 5 are actually loaded/used, cost the same amt of hardware
+    logic [4:0] pixel_row_reversed;
+    logic text_pixel;
+    logic graphic_mode;
+
+    //logic hs_zm1, vs_zm1, hs_zm2, vs_zm2, hs_zm3, vs_zm3, hs_zm4, vs_zm4, hs_zm5, vs_zm5, hs_zm6, vs_zm6;
+    // always_ff @(posedge vga_clk) begin
+    //     postff_tbuf_addr <= tbuf_addr;
+    //     hs_zm1 <= hs;
+    //     vs_zm1 <= vs;
+    //     hs_zm2 <= hs_zm1;
+    //     vs_zm2 <= vs_zm1;
+    //     hs_zm3 <= hs_zm2;
+    //     vs_zm3 <= vs_zm2;
+    //     hs_zm4 <= hs_zm3;
+    //     vs_zm4 <= vs_zm3;
+    //     hs_zm5 <= hs_zm4;
+    //     vs_zm5 <= vs_zm4;
+    //     hs_zm6 <= hs_zm5;
+    //     vs_zm6 <= vs_zm5;
+    // end
+    // assign ascii_val = (tbuf_addr < 10'hFF) ? postff_tbuf_addr[7:0] : 8'b0;
+    // assign ascii_val = (tbuf_addr < 10'hFF) ? tbuf_addr[7:0] : 8'b0;
+
     //gradually stop pipeline advance as halt moves through pipeline
     assign pipeline_advance_FD = !(halt_D || stall);
     assign pipeline_advance_DE = !(halt_E || stall);
@@ -618,11 +648,6 @@ module riscv_cpu_v2(
         .rst(rst)
     );
 
-
-    logic [9:0] tbuf_addr;
-    logic [2:0] char_pix_x, char_pix_y;
-    logic whitespace_en;
-
     tbuf_ctrl my_tbuf_ctrl(
         .norm_pix_x(pix_x[9:2]),
         .norm_pix_y(pix_y[9:2]),
@@ -635,53 +660,6 @@ module riscv_cpu_v2(
         .whitespace_en
     );
 
-    logic [7:0] ascii_val, postff_tbuf_addr;
-    logic hs_zm1, vs_zm1, hs_zm2, vs_zm2, hs_zm3, vs_zm3, hs_zm4, vs_zm4, hs_zm5, vs_zm5, hs_zm6, vs_zm6;
-
-    always_ff @(posedge vga_clk) begin
-        postff_tbuf_addr <= tbuf_addr;
-        hs_zm1 <= hs;
-        vs_zm1 <= vs;
-        hs_zm2 <= hs_zm1;
-        vs_zm2 <= vs_zm1;
-        hs_zm3 <= hs_zm2;
-        vs_zm3 <= vs_zm2;
-        hs_zm4 <= hs_zm3;
-        vs_zm4 <= vs_zm3;
-        hs_zm5 <= hs_zm4;
-        vs_zm5 <= vs_zm4;
-        hs_zm6 <= hs_zm5;
-        vs_zm6 <= vs_zm5;
-    end
-
-    // assign ascii_val = (tbuf_addr < 10'hFF) ? postff_tbuf_addr[7:0] : 8'b0;
-    // assign ascii_val = (tbuf_addr < 10'hFF) ? tbuf_addr[7:0] : 8'b0;
-    assign ascii_val = portb_q[7:0];
-
-    logic [7:0] sprite_start_ptr;
-
-    font_lut my_font_lut(
-        .ascii_val,
-        .sprite_start_ptr
-    );
-
-    logic [10:0] sprite_ptr;
-    assign sprite_ptr = sprite_start_ptr*8'd7 + char_pix_y;
-
-    logic [7:0] pixel_row;
-
-    font_table my_font_table(
-        .aclr(~rst),
-	    .address(sprite_ptr),
-	    .clock(vga_clk),
-	    .q(pixel_row)
-    );
-
-    logic [4:0] pixel_row_reversed;
-    logic text_pixel;
-    assign pixel_row_reversed = {pixel_row[0], pixel_row[1], pixel_row[2], pixel_row[3], pixel_row[4]};
-    assign text_pixel = pixel_row_reversed[char_pix_x];
-
     //synchronous-read data mem, so inputs come straight from EX stage
     assign DATA_MEM_ADDR = ALU - LOWEST_DATA_MEM_ADDR;
     assign DATA_MEM_ADDR_B = portb_addr - LOWEST_DATA_MEM_ADDR;
@@ -689,7 +667,6 @@ module riscv_cpu_v2(
     assign TRAM_ADDR = 32'hA890 + tbuf_addr;
     //assign portb_q = pix_vis ? VRAM_ADDR : '0;
 
-    logic graphic_mode;
     assign graphic_mode = portb_extern_en;
 
     assign portb_rst_mux = '0 /*portb_extern_en*/          ? portb_rst         : (rst);
@@ -719,6 +696,25 @@ module riscv_cpu_v2(
         .portb_addr_half(portb_addr_half_mux),
         .portb_zero_extend(portb_zero_extend_mux)
     );
+
+    assign ascii_val = portb_q[7:0];
+
+    font_lut my_font_lut(
+        .ascii_val,
+        .sprite_start_ptr
+    );
+
+    assign sprite_ptr = sprite_start_ptr*8'd7 + char_pix_y;
+
+    font_table my_font_table(
+        .aclr(~rst),
+	    .address(sprite_ptr),
+	    .clock(vga_clk),
+	    .q(pixel_row)
+    );
+
+    assign pixel_row_reversed = {pixel_row[0], pixel_row[1], pixel_row[2], pixel_row[3], pixel_row[4]};
+    assign text_pixel = pixel_row_reversed[char_pix_x];
 
     assign VGA_RED =   pix_vis ? (graphic_mode ? (portb_q[3:0])  : (whitespace_en ? 4'h0 : ({4{1'b0}}))) : '0;
     assign VGA_GREEN = pix_vis ? (graphic_mode ? (portb_q[7:4])  : (whitespace_en ? 4'h0 : ({4{text_pixel}}))) : '0;

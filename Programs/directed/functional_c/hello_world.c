@@ -1,12 +1,32 @@
 #include "base.h"
 #include "drysoup.h"
 
+__attribute__((section(".tram"), used))                    
+char text_buffer[368] = {
+  /*"##########################"*/ 
+    "                          "
+    "                          "
+    "                          "
+    "                          "
+    "                          "
+    "          HI MOM          "
+    "            :)            "
+    "                          "
+    "                          "
+    "                          "
+    "                          "
+    "                          "
+    "                          "
+    "                          "
+    "                          "
+    "                          "
+  /*"##########################"*/ 
+};
 int main(){
 
-    char str[] = "HELLO WORLD";
 
     return tb_return(
-        str[0],
-        pack_ptr((uint32_t*)str, sizeof(str)/sizeof(str[0]), true)
+        text_buffer[0],
+        pack_ptr((uint32_t*)text_buffer, sizeof(text_buffer)/sizeof(text_buffer[0]), true)
     );
 }

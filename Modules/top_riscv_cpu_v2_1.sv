@@ -21,14 +21,16 @@ TODO reimp portb sel after ecall imp
 TODO imp ecall for text/graphicmode
 TODO clean up modules directory
 TODO try to imp the fancy LUT
-TODO clean up tbuff section declarations
-TODO clean up fanout hell of inc_en in tbuf_ctrl
 TODO printf
 .
 .
 .
 TODO float hw support
 TODO fsm divide
+.
+.
+.
+TODO clean up fanout hell of inc_en in tbuf_ctrl
 
 Out of Semester
 ===============
