@@ -222,7 +222,7 @@ module riscv_cpu_v2(
     logic [7:0] pixel_row;  //8bits, only 5 are actually loaded/used, cost the same amt of hardware
     logic [4:0] pixel_row_reversed;
     logic text_pixel;
-    logic graphic_mode;
+    logic text_mode;
 
     //logic hs_zm1, vs_zm1, hs_zm2, vs_zm2, hs_zm3, vs_zm3, hs_zm4, vs_zm4, hs_zm5, vs_zm5, hs_zm6, vs_zm6;
     // always_ff @(posedge vga_clk) begin
@@ -667,13 +667,13 @@ module riscv_cpu_v2(
     assign TRAM_ADDR = 32'hA890 + tbuf_addr;
     //assign portb_q = pix_vis ? VRAM_ADDR : '0;
 
-    assign graphic_mode = portb_extern_en;
+    assign text_mode = portb_extern_en;
 
     assign portb_rst_mux = '0 /*portb_extern_en*/          ? portb_rst         : (rst);
-    assign PORTB_ADDR_MUX = '0 /*portb_extern_en*/         ? DATA_MEM_ADDR_B   : ((graphic_mode ? VRAM_ADDR : TRAM_ADDR));
+    assign PORTB_ADDR_MUX = '0 /*portb_extern_en*/         ? DATA_MEM_ADDR_B   : ((text_mode ? TRAM_ADDR : VRAM_ADDR));
     assign portb_clk_mux = '0 /*portb_extern_en*/          ? portb_clk         : (vga_clk);
-    assign portb_addr_byte_mux = '0 /*portb_extern_en*/    ? portb_addr_byte   : ((graphic_mode ? '0 : 1'b1));
-    assign portb_addr_half_mux = '0 /*portb_extern_en*/    ? portb_addr_half   : ((graphic_mode ? 1'b1 : '0));
+    assign portb_addr_byte_mux = '0 /*portb_extern_en*/    ? portb_addr_byte   : ((text_mode ? 1'b1 : '0));
+    assign portb_addr_half_mux = '0 /*portb_extern_en*/    ? portb_addr_half   : ((text_mode ? '0 : 1'b1));
     assign portb_zero_extend_mux = '0 /*portb_extern_en*/  ? portb_zero_extend : (1'b1);
 
     data_memory #(
@@ -716,9 +716,9 @@ module riscv_cpu_v2(
     assign pixel_row_reversed = {pixel_row[0], pixel_row[1], pixel_row[2], pixel_row[3], pixel_row[4]};
     assign text_pixel = pixel_row_reversed[char_pix_x];
 
-    assign VGA_RED =   pix_vis ? (graphic_mode ? (portb_q[3:0])  : (whitespace_en ? 4'h0 : ({4{1'b0}}))) : '0;
-    assign VGA_GREEN = pix_vis ? (graphic_mode ? (portb_q[7:4])  : (whitespace_en ? 4'h0 : ({4{text_pixel}}))) : '0;
-    assign VGA_BLUE =  pix_vis ? (graphic_mode ? (portb_q[11:8]) : (whitespace_en ? 4'h0 : ({4{1'b0}}))) : '0;
+    assign VGA_RED =   pix_vis ? (text_mode ? (whitespace_en ? 4'h0 : ({4{1'b0}}))       : (portb_q[3:0]))   : '0;
+    assign VGA_GREEN = pix_vis ? (text_mode ? (whitespace_en ? 4'h0 : ({4{text_pixel}})) : (portb_q[7:4]))   : '0;
+    assign VGA_BLUE =  pix_vis ? (text_mode ? (whitespace_en ? 4'h0 : ({4{1'b0}}))       : (portb_q[11:8]))  : '0;
     assign VGA_HS = hs;
     assign VGA_VS = vs;
 
