@@ -20,6 +20,7 @@ TODO find out wtf is wrong with the vga composite
 TODO imp ecall for text/graphicmode
 TODO reimp portb sel after ecall imp
 TODO printf
+TODO ps/2 io implentation
 TODO go through warnings in quartus
 .
 .

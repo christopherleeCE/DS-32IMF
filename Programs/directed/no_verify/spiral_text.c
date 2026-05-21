@@ -30,7 +30,7 @@ void draw_snake(char* text_buffer, int* cord_x_history, int* cord_y_history){
     //only write if within bounds
     for(int ii = 0; ii < SNAKE_LEN; ii++){
         if((0 <= cord_x_history[ii] && cord_x_history[ii] <= 25) && (0 <= cord_y_history[ii] && cord_y_history[ii] <= 13)){
-            text_buffer[cord_x_history[ii] + 26*cord_y_history[ii]] = (char)0x9D;
+            text_buffer[cord_x_history[ii] + 26*cord_y_history[ii]] = '#';//(char)0x9D;
         }   
     }
 }
