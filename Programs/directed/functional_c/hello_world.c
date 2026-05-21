@@ -18,8 +18,6 @@ char text_buffer[368] = {
     "                          "
     "                          "
     "                          "
-    "                          "
-    "                          "
   /*"##########################"*/ 
 };
 int main(){
@@ -27,6 +25,6 @@ int main(){
 
     return tb_return(
         text_buffer[0],
-        pack_ptr((uintptr_t)text_buffer, sizeof(text_buffer)/sizeof(text_buffer[0]), true)
+        text_buffer[0]
     );
 }
