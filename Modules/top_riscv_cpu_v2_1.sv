@@ -16,10 +16,11 @@ gold[5] then its compared against the dut, which at this point that addi in the 
 Current semester
 ================
 TODO fix vga overflow
-TODO imp comp green in text mode
-TODO reimp portb sel after ecall imp
+TODO find out wtf is wrong with the vga composite
 TODO imp ecall for text/graphicmode
+TODO reimp portb sel after ecall imp
 TODO printf
+TODO go through warnings in quartus
 .
 .
 .
@@ -255,14 +256,14 @@ module top_riscv_cpu_v2_1();
         .r2_data_hazard_1(),
         .r2_data_hazard_2(),
         .r2_data_hazard_3(),
-        .portb_extern_en('0),
-        .portb_rst('0),
+        .portb_extern_en(1'b1),
+        .portb_rst(1'b1),
         .portb_addr(32'h4fd0),
         .portb_clk(clk),
         .portb_q(portb_q),
-        .portb_addr_byte('0),
-        .portb_addr_half('0),
-        .portb_zero_extend('0),
+        .portb_addr_byte(1'b1),
+        .portb_addr_half(1'b0),
+        .portb_zero_extend(1'b1),
         .clk_50(clk_50),
         .VGA_RED(),
         .VGA_BLUE(),

@@ -221,12 +221,21 @@ module riscv_cpu_v2(
     logic [10:0] sprite_ptr;
     logic [7:0] pixel_row;  //8bits, only 5 are actually loaded/used, cost the same amt of hardware
     logic [4:0] pixel_row_reversed;
-    logic text_pixel;
+    logic text_pix;
     logic text_mode;
+    logic [3:0] text_red, text_green, text_blue, graphic_red, graphic_green, graphic_blue;
 
-    //logic hs_zm1, vs_zm1, hs_zm2, vs_zm2, hs_zm3, vs_zm3, hs_zm4, vs_zm4, hs_zm5, vs_zm5, hs_zm6, vs_zm6;
+    logic [2:0] cursor_pix_row;
+    logic whitespace_pix;
+
+    logic [3:0] vga_red_async, vga_green_async, vga_blue_async;
+    logic [3:0] vga_red_middle_ff, vga_green_middle_ff, vga_blue_middle_ff;
+    logic [3:0] vga_red_middle_ff1, vga_green_middle_ff1, vga_blue_middle_ff1;
+    logic vga_hs_async, vga_vs_async, vga_hs_middle_ff, vga_vs_middle_ff, vga_hs_middle_ff1, vga_vs_middle_ff1;
+
+    // logic hs_zm1, vs_zm1, hs_zm2, vs_zm2, hs_zm3, vs_zm3, hs_zm4, vs_zm4, hs_zm5, vs_zm5, hs_zm6, vs_zm6;
     // always_ff @(posedge vga_clk) begin
-    //     postff_tbuf_addr <= tbuf_addr;
+    //     //postff_tbuf_addr <= tbuf_addr;
     //     hs_zm1 <= hs;
     //     vs_zm1 <= vs;
     //     hs_zm2 <= hs_zm1;
@@ -713,14 +722,74 @@ module riscv_cpu_v2(
 	    .q(pixel_row)
     );
 
-    assign pixel_row_reversed = {pixel_row[0], pixel_row[1], pixel_row[2], pixel_row[3], pixel_row[4]};
-    assign text_pixel = pixel_row_reversed[char_pix_x];
+    cursor_gen my_cursor_gen(
+        .pix_x(pix_x),
+        .pix_y(pix_y),
+        .clk(vga_clk),
+        .cursor_pix_row
+    );
 
-    assign VGA_RED =   pix_vis ? (text_mode ? (whitespace_en ? 4'h0 : ({4{1'b0}}))       : (portb_q[3:0]))   : '0;
-    assign VGA_GREEN = pix_vis ? (text_mode ? (whitespace_en ? 4'h0 : ({4{text_pixel}})) : (portb_q[7:4]))   : '0;
-    assign VGA_BLUE =  pix_vis ? (text_mode ? (whitespace_en ? 4'h0 : ({4{1'b0}}))       : (portb_q[11:8]))  : '0;
-    assign VGA_HS = hs;
-    assign VGA_VS = vs;
+    always_comb begin
+        unique case(pix_x[9:2])
+
+            8'd0    : whitespace_pix = cursor_pix_row[2];
+            8'd1    : whitespace_pix = cursor_pix_row[1];
+            8'd2    : whitespace_pix = cursor_pix_row[0];
+            default : whitespace_pix = 1'b0;
+
+        endcase
+    end
+
+    assign pixel_row_reversed = {pixel_row[0], pixel_row[1], pixel_row[2], pixel_row[3], pixel_row[4]};
+    assign text_pix = pixel_row_reversed[char_pix_x];
+
+    assign graphic_red = portb_q[3:0];
+    assign graphic_green = portb_q[7:4];
+    assign graphic_blue = portb_q[11:8];
+
+    //if '0 is placed in the mux tree (@ whitespace_pix in text_green) then the vga takes a fat shit, all the glyphs get filled out in green, see below
+    //maybe if after the vga overflow fix this goes away who knows...
+    assign text_red = (whitespace_en ? {4{1'b0}} : {4{text_pix}});
+    assign text_green = (whitespace_en ? {4{1'b0}} : {4{text_pix}});
+    assign text_blue = {4{whitespace_pix}};
+
+    //doesnt work :), unlike above where '0 breaks it and ws_p works, this is the opposite
+    // assign VGA_RED =   pix_vis ? (text_mode ? (whitespace_en ? ({4{1'b0}})          : ({4{1'b0}}))       : (portb_q[3:0]))   : '0;
+    // assign VGA_GREEN = pix_vis ? (text_mode ? (whitespace_en ? ({4{whitespace_pix}}): ({4{text_pix}})) : (portb_q[7:4]))   : '0;
+    // assign VGA_BLUE =  pix_vis ? (text_mode ? (whitespace_en ? ({4{1'b0}})          : ({4{1'b0}}))       : (portb_q[11:8]))  : '0;
+
+    //works :) i hate everything
+    // assign VGA_RED =   pix_vis ? '0 : '0;
+    // assign VGA_GREEN = pix_vis ? (whitespace_en ? ({4{whitespace_pix}}): ({4{text_pix}})) : '0;
+    // assign VGA_BLUE =  pix_vis ? {4{whitespace_pix}} : '0;
+
+    assign vga_red_async =   pix_vis ? (text_mode ? text_red   : graphic_red  ) : '0;
+    assign vga_green_async = pix_vis ? (text_mode ? text_green : graphic_green) : '0;
+    assign vga_blue_async =  pix_vis ? (text_mode ? text_blue  : graphic_blue ) : '0;
+    assign vga_hs_async = hs;
+    assign vga_vs_async = vs;
+
+    always_ff @(posedge vga_clk) begin
+
+        vga_red_middle_ff <= vga_red_async;
+        vga_green_middle_ff <= vga_green_async;
+        vga_blue_middle_ff <= vga_blue_async;
+        vga_hs_middle_ff <= vga_hs_async;
+        vga_vs_middle_ff <= vga_vs_async;
+
+        VGA_RED <= vga_red_middle_ff;
+        VGA_GREEN <= vga_green_middle_ff;
+        VGA_BLUE <= vga_blue_middle_ff;
+        VGA_HS <= vga_hs_middle_ff;
+        VGA_VS <= vga_vs_middle_ff;
+
+    end
+
+    // assign VGA_RED = vga_red_async;
+    // assign VGA_GREEN = vga_green_async;
+    // assign VGA_BLUE = vga_blue_async;
+    // assign VGA_HS = vga_hs_async;
+    // assign VGA_VS = vga_vs_async;
 
     ////////////////////////////////////////////////////////
     // logic [3:0] color [2:0];
