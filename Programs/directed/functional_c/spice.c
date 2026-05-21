@@ -160,7 +160,7 @@ int main()
 
     return(tb_return(
         b_x[0],
-        pack_ptr((uint32_t*)b_x, size, false))
+        pack_ptr((uintptr_t)b_x, size, false))
     );
 }
 

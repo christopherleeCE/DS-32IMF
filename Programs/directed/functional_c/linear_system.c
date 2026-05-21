@@ -108,7 +108,7 @@ int main()
     //return
     return(tb_return(
         b_matrix[0],
-        pack_ptr((uint32_t*)b_matrix, sizeof(b_matrix)/sizeof(b_matrix[0]), false))
+        pack_ptr((uintptr_t)b_matrix, sizeof(b_matrix)/sizeof(b_matrix[0]), false))
     );
 }
 

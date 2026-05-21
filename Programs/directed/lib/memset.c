@@ -4,11 +4,11 @@
 #include <stddef.h>
 
 //manual definition of memset which is called and occasiaonlly by gcc
+//int c only uses bottom byte
 void *memset(void *s, int c, size_t n){
-    unsigned char *p = (unsigned char *)s;
 
     for (size_t i = 0; i < n; i++) {
-        p[i] = (unsigned char)c;
+        ((unsigned char*)s)[i] = (unsigned char)c;
     }
 
     return s;

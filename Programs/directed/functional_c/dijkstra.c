@@ -56,7 +56,7 @@ int main()
     //return the distance array
     return tb_return(
         dist_arr[0][0],
-        pack_ptr((uint32_t*)dist_arr, N*2, false)
+        pack_ptr((uintptr_t)dist_arr, N*2, false)
     );
 }
 

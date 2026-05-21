@@ -61,8 +61,8 @@ SECTIONS
     _vram_size = VRAM_START;
 
     _tram_top = TRAM_END;
-    _tram_bottom = TRAM_SIZE;
-    _tram_size = TRAM_START;
+    _tram_bottom = TRAM_START;
+    _tram_size = TRAM_SIZE;
 
     /* fixed stack boundries */
     _stack_top    = TRAM_START;

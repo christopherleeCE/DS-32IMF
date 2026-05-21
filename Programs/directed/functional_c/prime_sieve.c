@@ -62,7 +62,7 @@ int main()
 
         return tb_return(
         *prime_list,
-        pack_ptr((uint32_t*)prime_list, prime_count, false)
+        pack_ptr((uintptr_t)prime_list, prime_count, false)
         );
     }       
 }

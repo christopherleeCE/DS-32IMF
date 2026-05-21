@@ -135,7 +135,7 @@ int main() {
 
     return tb_return(
         rf2i(ret[0][0]),
-        pack_ptr((uint32_t*)ret, 21*2, false)
+        pack_ptr((uintptr_t)ret, 21*2, false)
     );
 }
 

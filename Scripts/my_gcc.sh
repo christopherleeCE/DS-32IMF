@@ -148,6 +148,9 @@ riscv64-unknown-elf-objcopy \
   program.elf fullimage.bin
 
 #splits the .elf into imem and dmem .bins
+echo
+echo "dd .bin split info..."
+echo "====================="
 dd if=fullimage.bin of=instr.bin bs=96K count=1
 dd if=fullimage.bin of=data.bin bs=96K skip=1
 

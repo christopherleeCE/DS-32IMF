@@ -30,6 +30,6 @@ int main() {
 
     return tb_return(
         C[0][0],
-        pack_ptr((uint32_t*)C, 9, false)
+        pack_ptr((uintptr_t)C, 9, false)
     );
 }

@@ -34,6 +34,6 @@ int main(){
 
     return tb_return(
         *ret,
-        pack_ptr((uint32_t*)ret, sizeof(ret)/sizeof(ret[0]), false)
+        pack_ptr((uintptr_t)ret, sizeof(ret)/sizeof(ret[0]), false)
     );
 }

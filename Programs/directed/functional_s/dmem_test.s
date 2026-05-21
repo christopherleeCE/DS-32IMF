@@ -72,3 +72,4 @@ buffer:
 
 counter:
     .space 4
+    

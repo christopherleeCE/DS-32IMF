@@ -57,7 +57,7 @@ int main()
 
     return tb_return(
         test_array[0],
-        pack_ptr((uint32_t*)test_array, length, false)
+        pack_ptr((uintptr_t)test_array, length, false)
     );
 }
 
