@@ -25,7 +25,9 @@ void free(void* ptr);
 void newline();
 size_t write(char* str);
 size_t uint2bcd(uint32_t val, int ret_arr[]);
+int putchar(int c);
 void print_uint(unsigned int int_val);
+int printf(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 
 //misc
 uint32_t pack_ptr(uintptr_t ptr, uint8_t len, bool is_string);

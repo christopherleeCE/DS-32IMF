@@ -47,7 +47,7 @@ if ($golden_history)    { $vsimArgs += " +GOLDEN_HISTORY" }
 if ($verify_output)     { $vsimArgs += " +VERIFY_OUTPUT"}
 if ($no_verify)         { $vsimArgs += " +NO_VERIFY" }
 if ($continue)          { $vsimArgs += " +CONTINUE" }
-if ($v)                 { $vsimArgs += " +GOLDEN_CALC +DUT_DUMP +GOLDEN_HISTORY +VERIFY_OUTPUT +CONTINUE"}
+if ($v)                 { $vsimArgs += " +GOLDEN_CALC +DUT_DUMP +GOLDEN_HISTORY +VERIFY_OUTPUT "}# +CONTINUE"}
 if ($wave_dump)         { $vsimArgs += " +WAVE_DUMP" }
 if ($mem_dump)         { $vsimArgs += " +MEM_DUMP" }
 

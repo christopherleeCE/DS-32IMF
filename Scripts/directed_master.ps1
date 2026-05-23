@@ -70,7 +70,7 @@ if($help){
 }
 
 $simScriptArgs = @{
-    continue = $true;
+    #continue = $true;
     no_compile = $false
 }
 
