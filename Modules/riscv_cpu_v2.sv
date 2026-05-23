@@ -1,36 +1,76 @@
-//TODO confirm buses are right,
-//TODO better comments for logic declarations
-
-//this makes it so that the compiler will throw an error if we try to use a signal/bus that has not been declared,
-//this will help avoid errors where an undeclared bus gets implicitly declared as a wire
-// `default_nettype none
 
 //prototype of basic pattern
-module riscv_cpu_v2
-(
+module riscv_cpu_v2(
+
     input logic clk, rst, //This has to be a wire for explicit net type declaration (according to Questa)
     output logic ohalt, //when this is asserted, CPU should stop execution. Please implement in testbench
-    output logic ofinish
+    output logic ofinish,
+    output logic [31:0] a0,
+    output logic [31:0] instr_f_out,
+    output logic [31:0] instr_d_out,
+    output logic [31:0] instr_e_out,
+    output logic [31:0] instr_m_out,
+    output logic [31:0] instr_w_out,
+    output logic [31:0] pc_f_out,
+    output logic [31:0] pc_d_out,
+    output logic [31:0] pc_e_out,
+    output logic [31:0] pc_m_out,
+    output logic [31:0] pc_w_out,
+    
+    output logic control_hazard,
+
+    output logic [4:0] r1_data_hazard_1,
+    output logic [4:0] r1_data_hazard_2,
+    output logic [4:0] r1_data_hazard_3,
+    output logic [4:0] r2_data_hazard_1,
+    output logic [4:0] r2_data_hazard_2,
+    output logic [4:0] r2_data_hazard_3,
+
+    input logic portb_extern_en,
+    input logic portb_rst,
+    input logic [31:0] portb_addr,
+    input logic portb_clk,
+    output logic [31:0] portb_q,
+    input logic portb_addr_byte,
+    input logic portb_addr_half,
+    input logic portb_zero_extend,
+
+    input logic clk_50, //50mhz
+    output logic [3:0] VGA_RED,
+    output logic [3:0] VGA_BLUE,
+    output logic [3:0] VGA_GREEN,
+    output logic       VGA_HS,
+    output logic       VGA_VS
 );
 
     //this assigns the SIG's declarred in microcode to corresponding outputs of the ustore
-    `include "sig_declare.inc";
+    `include "sig_declare.inc"
 
-    //TODO some bus declarations may be missing, and those dont show up in questa's console :( but that is a bridge we will burn l8r
+    localparam logic [31:0] LOWEST_DATA_MEM_ADDR = 32'h18000;
+    localparam logic [31:0] VRAM_BOTTOM_ADDR = 32'hAA00;
+    localparam logic [31:0] TRAM_BOTTOM_ADDR = 32'hA890;
 
     //new terminology:
     // f=fetch, d=decode, e=execute, m=memory, w=writeback
+    logic [31:0] NEXT_PC;           //the pc that will be inside pc and the interal mk9_rom reg in the next clk
     logic [31:0] PC;
     logic [31:0] PC_D;             //PC after pipeline reg
-    logic [31:0] PC_E;              //PC after pipeline reg
-    logic [31:0] PC_target;        //target PC for branches (calculated in execute stage)
-    logic [31:0] PC_plus_4_E;      //PC + 4 (needed for JAL)
-    logic [31:0] PC_plus_4_M;
-    logic [31:0] PC_plus_4_W;
+    logic [31:0] PC_E;
+    logic [31:0] PC_M;
+    logic [31:0] PC_W;
+    logic [31:0] PC_TARGET;        //target PC for branches (calculated in execute stage)
+    logic [31:0] PC_PLUS_4_E;      //PC + 4 (needed for JAL)
+    logic [31:0] PC_PLUS_4_M;
+    logic [31:0] PC_PLUS_4_W;
+    logic [31:0] INSTR_MEM_OUT;
     logic [31:0] INSTR_F;           //IF instruction from instruction memory, before flush
+    logic [31:0] INSTR_F_MASKED;    //for use in aliasing fix  
     logic [31:0] INSTR_F_FLUSH;    //IF instruction after deciding whether to flush or not
     logic [31:0] INSTR_D;           //ID instruction after pipeline reg, before flush
     logic [31:0] INSTR_D_FLUSH;     //ID instruction after pipeline reg, after flush
+    logic [31:0] INSTR_E;
+    logic [31:0] INSTR_M;
+    logic [31:0] INSTR_W;
     logic [UIP_WIDTH-1:0] UIP;
     logic [4:0] RS1;               //read addr of regfile 
     logic [4:0] RS1_E;            //read addr of regfile after pipeline reg
@@ -44,7 +84,6 @@ module riscv_cpu_v2
     logic [31:0] RS2_DATA_FWD;      //read2 from regfile after data hazard forwarding
     logic [31:0] RS2_DATA_E;       //read2 from regfile after pipeline reg
     logic [31:0] RS2_DATA_E_FWD;   //read2 from regfile after data hazard forwarding
-    logic [31:0] RS2_DATA_M;    //read2 from regfile after 2pipeline reg
     logic [4:0] RD;                //write addr of regfile
     logic [4:0] RD_E;             //write addr of regfile after pipeline reg
     logic [4:0] RD_M;          //write addr of regfile after 2pipeline reg
@@ -55,8 +94,10 @@ module riscv_cpu_v2
     logic [31:0] ALU;               //output of alu
     logic [31:0] ALU_M;   
     logic [31:0] ALU_W;
-    logic [31:0] DATA_MEM_OUT;
+    logic [31:0] DATA_MEM_OUT, NEW_DATA_MEM_OUT;
     logic [31:0] DATA_MEM_OUT_W;
+    logic [31:0] DATA_MEM_ADDR;
+    logic [31:0] DATA_MEM_ADDR_B;
 
     logic zero_flag;               //from alu, is the result zero?
     logic less_than;              //from alu, is op1 < op2? (for signed comparisons)
@@ -68,20 +109,20 @@ module riscv_cpu_v2
     logic [63:0] f2d_data_F;          //fetch to decode data signals
     logic [63:0] f2d_data_D;       //fetch to decode post pipeline    
 
-    logic [142:0] d2e_data_D;          //decode to execute data signals
-    logic [29:0] d2e_control_D;       //decode to execute control signals
-    logic [142:0] d2e_data_E;       //decode to execute post pipeline
-    logic [29:0] d2e_control_E;    //decode to execute control signals post pipeline
+    logic [174:0] d2e_data_D;           //decode to execute data signals
+    logic [33:0] d2e_control_D;       //decode to execute control signals
+    logic [174:0] d2e_data_E;       //decode to execute post pipeline
+    logic [33:0] d2e_control_E;    //decode to execute control signals post pipeline
 
-    logic [100:0] e2m_data_E;          //execute to memory data signals
-    logic [8:0] e2m_control_E;       //execute to memory control signals
-    logic [100:0] e2m_data_M;       //execute to memory post pipeline
-    logic [8:0] e2m_control_M;    //execute to memory control signals post pipeline  
+    logic [132:0] e2m_data_E;          //execute to memory data signals
+    logic [4:0] e2m_control_E;       //execute to memory control signals
+    logic [132:0] e2m_data_M;     //execute to memory post pipeline
+    logic [4:0] e2m_control_M;    //execute to memory control signals post pipeline  
 
-    logic [100:0] m2w_data_M;          //memory to writeback data signals
+    logic [164:0] m2w_data_M;         //memory to writeback data signals
     logic [4:0] m2w_control_M;       //memory to writeback control signals
-    logic [100:0] m2w_data_W;       //memory to writeback post pipeline
-    logic [4:0] m2w_control_W;    //memory to writeback control signals post pipeline    
+    logic [164:0] m2w_data_W;       //memory to writeback post pipeline
+    logic [4:0] m2w_control_W;   //memory to writeback control signals post pipeline    
 
     //control signals after 1 pipeline reg
     logic reg_file_wr_en_E;
@@ -93,6 +134,10 @@ module riscv_cpu_v2
     logic alu_sel_mulh_E;
     logic alu_sel_mulhsu_E;
     logic alu_sel_mulhu_E;
+    logic alu_sel_div_E;
+    logic alu_sel_divu_E;
+    logic alu_sel_rem_E;
+    logic alu_sel_remu_E;
     logic alu_sel_and_E;
     logic alu_sel_or_E;
     logic alu_sel_xor_E;
@@ -112,6 +157,7 @@ module riscv_cpu_v2
     logic dbus_sel_alu_E;
     logic dbus_sel_data_mem_E;
     logic dbus_sel_pc_plus_4_E;
+    logic rs1_2_pc_E;
 
     //control signals after 2 pipeline regs
     logic data_mem_wr_en_M;
@@ -149,11 +195,68 @@ module riscv_cpu_v2
     logic pipeline_advance_EM;
     logic pipeline_advance_MW;
 
+    logic pre_stall_1, pre_stall_2, pre_stall_3, stall;
+
+    logic portb_rst_mux;
+    logic [31:0] PORTB_ADDR_MUX;
+    logic portb_clk_mux;
+    logic portb_addr_byte_mux;
+    logic portb_addr_half_mux;
+    logic portb_zero_extend_mux;
+
+    logic [10-1:0] pix_x;   //x_cord
+    logic [10-1:0] pix_y;   //y_cord
+    logic pix_vis;          //visible
+    logic [6-1:0] frame_id; //frame num/60
+    logic hs;       //horz sync sig
+    logic vs;       //vert sync sig
+    logic [31:0] VRAM_ADDR, TRAM_ADDR;
+    logic vga_clk;
+
+    logic [9:0] tbuf_addr;
+    logic [2:0] char_pix_x, char_pix_y;
+    logic whitespace_en;
+    logic [7:0] ascii_val;//, postff_tbuf_addr;
+    logic [7:0] sprite_start_ptr;
+    logic [10:0] sprite_ptr;
+    logic [7:0] pixel_row;  //8bits, only 5 are actually loaded/used, cost the same amt of hardware
+    logic [4:0] pixel_row_reversed;
+    logic text_pix;
+    logic text_mode;
+    logic [3:0] text_red, text_green, text_blue, graphic_red, graphic_green, graphic_blue;
+
+    logic [2:0] cursor_pix_row;
+    logic whitespace_pix;
+
+    logic [3:0] vga_red_async, vga_green_async, vga_blue_async;
+    logic [3:0] vga_red_middle_ff, vga_green_middle_ff, vga_blue_middle_ff;
+    logic [3:0] vga_red_middle_ff1, vga_green_middle_ff1, vga_blue_middle_ff1;
+    logic vga_hs_async, vga_vs_async, vga_hs_middle_ff, vga_vs_middle_ff, vga_hs_middle_ff1, vga_vs_middle_ff1;
+
+    // logic hs_zm1, vs_zm1, hs_zm2, vs_zm2, hs_zm3, vs_zm3, hs_zm4, vs_zm4, hs_zm5, vs_zm5, hs_zm6, vs_zm6;
+    // always_ff @(posedge vga_clk) begin
+    //     //postff_tbuf_addr <= tbuf_addr;
+    //     hs_zm1 <= hs;
+    //     vs_zm1 <= vs;
+    //     hs_zm2 <= hs_zm1;
+    //     vs_zm2 <= vs_zm1;
+    //     hs_zm3 <= hs_zm2;
+    //     vs_zm3 <= vs_zm2;
+    //     hs_zm4 <= hs_zm3;
+    //     vs_zm4 <= vs_zm3;
+    //     hs_zm5 <= hs_zm4;
+    //     vs_zm5 <= vs_zm4;
+    //     hs_zm6 <= hs_zm5;
+    //     vs_zm6 <= vs_zm5;
+    // end
+    // assign ascii_val = (tbuf_addr < 10'hFF) ? postff_tbuf_addr[7:0] : 8'b0;
+    // assign ascii_val = (tbuf_addr < 10'hFF) ? tbuf_addr[7:0] : 8'b0;
+
     //gradually stop pipeline advance as halt moves through pipeline
-    assign pipeline_advance_FD = !halt_D;
-    assign pipeline_advance_DE = !halt_E;
-    assign pipeline_advance_EM = !halt_M;
-    assign pipeline_advance_MW = !halt_W;
+    assign pipeline_advance_FD = !(halt_D || stall);
+    assign pipeline_advance_DE = !(halt_E || stall);
+    assign pipeline_advance_EM = !(halt_M || stall);
+    assign pipeline_advance_MW = !(halt_W || stall);
 
     // Before the first clock, halt is asserted by default since no valid OPCODE has come from the fetch pipeline yet
     // Thus we have to wait for the first clock
@@ -202,30 +305,63 @@ module riscv_cpu_v2
     //==================================================================================================================== 
     // < IF STARTS HERE >
 
+    always_ff @(posedge clk or negedge rst) begin
+        if (!rst) begin
+            pre_stall_1 <= 1;
+            pre_stall_2 <= 1;
+            pre_stall_3 <= 1;
+        end
+        else begin
+            pre_stall_1 <= 0;
+            pre_stall_2 <= pre_stall_1;
+            pre_stall_3 <= pre_stall_2;
+        end
+    end
+
+    assign stall = pre_stall_3;
+
     //next pc logic
     pc #(
         .WIDTH(32)
     ) pc_reg (
-        .d(PC_target),
+        .d(PC_TARGET),
         .clk(clk),
         .rst(rst),
-        .wr_en(redirect_pc), //normally, PC increments by 4 each cycle, but if branch/jump taken, load PC_target
+        .nop(stall || ohalt || ofinish),
+        .wr_en(redirect_pc), //normally, PC increments by 4 each cycle, but if branch/jump taken, load PC_TARGET
+        .next_q(NEXT_PC),
         .q(PC)
     );
 
-    instruction_memory #(
-        .BIT_WIDTH(32),
-        .ENTRY_COUNT(512)
-    ) instr_mem (
-        .read_address(PC),
-        .read_data(INSTR_F)
-    );
+    mk9_rom_mif_aclr_96k my_mk9_rom (
+        .address(NEXT_PC[16:2]),
+        .clock(clk),
+        .q(INSTR_MEM_OUT),
+        .aclr(!rst)
+	);
 
-    //deciding whether to flush instruction or not
-    assign INSTR_F_FLUSH = flush_FD ? 32'h00000013 : INSTR_F; //if flushing, replace instruction with NOP (ADDI x0, x0, 0)
+    //leaving this here in case we need to compare old vs new instr me behavior at some point in the future
+    //logic [31:0] FAKE_INSTR_F;
+    // instruction_memory #(
+    //     .BIT_WIDTH(32),
+    //     .ENTRY_COUNT(16kb of words)
+    // ) instr_mem (
+    //     .read_address(PC),
+    //     .read_data(FAKE_INSTR_F)
+    // );
 
-    //preparing data for pipeline reg
-    assign f2d_data_F = {INSTR_F_FLUSH, PC};
+    //prioroity case statement from hell
+        //under stall or rst asserted be force the output of instrmem to a nop, prevents
+        assign INSTR_F = ((!rst) || stall) ? 32'h00000013 : INSTR_MEM_OUT;
+
+        //preventing aliasing, ensure addr of instr_mem is below top of imem(exclusive), this is abs address
+        assign INSTR_F_MASKED = (PC < 32'h18000) ? INSTR_F : 32'h00000000;
+
+        //deciding whether to flush instruction or not
+        assign INSTR_F_FLUSH = flush_FD ? 32'h00000013 : INSTR_F_MASKED; //if flushing, replace instruction with NOP (ADDI x0, x0, 0)
+
+        //preparing data for pipeline reg
+        assign f2d_data_F = {INSTR_F_FLUSH, PC};
 
 //pipeline register
 /* < IF/ID > */ //====================================================================================================
@@ -271,6 +407,7 @@ module riscv_cpu_v2
         .rs2_addr(RS2),
         .rs1_data(RS1_DATA),
         .rs2_data(RS2_DATA),
+        .a0(a0),
         .rd_wr_en(reg_file_wr_en_W),
         .rd_addr(RD_W),
         .rd_data(RD_DATA), 
@@ -283,7 +420,7 @@ module riscv_cpu_v2
     assign RS2_DATA_FWD = (R2_case_rf2rf) ? RD_DATA : RS2_DATA;     //Before WB clock, take from RD_DATA if data about to be written is needed immediately
 
     //preparing data and control signals for pipeline reg
-    assign d2e_data_D = {RS1_DATA_FWD, RS2_DATA_FWD, IM, RD, PC_D, RS1, RS2};
+    assign d2e_data_D = {RS1_DATA_FWD, RS2_DATA_FWD, IM, RD, PC_D, RS1, RS2, INSTR_D_FLUSH};
     assign d2e_control_D = {
         alu_use_im,
         alu_sel_add,
@@ -292,6 +429,10 @@ module riscv_cpu_v2
         alu_sel_mulh,
         alu_sel_mulhsu,
         alu_sel_mulhu,
+        alu_sel_div,
+        alu_sel_divu,
+        alu_sel_rem,
+        alu_sel_remu,
         alu_sel_and,
         alu_sel_or,
         alu_sel_xor,
@@ -320,7 +461,7 @@ module riscv_cpu_v2
 /* < ID/EX > */ //====================================================================================================
 
     dff_async_reset #(
-        .WIDTH(143)
+        .WIDTH(175)
     ) id_ex_reg (
         .d(d2e_data_D),      // Include IM in pipeline
         .clk(clk),
@@ -330,7 +471,7 @@ module riscv_cpu_v2
     );
 
     dff_async_reset #(
-        .WIDTH(30)
+        .WIDTH(34)
     ) id_ex_control_reg (
         .d(d2e_control_D),      // Include control signals in pipeline
         .clk(clk),
@@ -342,8 +483,8 @@ module riscv_cpu_v2
 //==================================================================================================================== 
 
     //unpacking data and control signals from pipeline reg
-    assign {RS1_DATA_E, RS2_DATA_E, IM_E, RD_E, PC_E, RS1_E, RS2_E} = d2e_data_E;
-    assign PC_plus_4_E = PC_E + 32'd4;
+    assign {RS1_DATA_E, RS2_DATA_E, IM_E, RD_E, PC_E, RS1_E, RS2_E, INSTR_E} = d2e_data_E;
+    assign PC_PLUS_4_E = PC_E + 32'd4;
     assign {
         alu_use_im_E,
         alu_sel_add_E,
@@ -352,6 +493,10 @@ module riscv_cpu_v2
         alu_sel_mulh_E,
         alu_sel_mulhsu_E,
         alu_sel_mulhu_E,
+        alu_sel_div_E,
+        alu_sel_divu_E,
+        alu_sel_rem_E,
+        alu_sel_remu_E,
         alu_sel_and_E,
         alu_sel_or_E,
         alu_sel_xor_E,
@@ -383,7 +528,7 @@ module riscv_cpu_v2
 
         (R1_case_dm2alu && dbus_sel_alu_M) : RS1_DATA_E_FWD = ALU_M;         //Take from ALU_M if needed in EX stage and was gotten from ALU
         (R1_case_dm2alu && dbus_sel_data_mem_M)  : RS1_DATA_E_FWD = DATA_MEM_OUT;  //Take from DATA_MEM_OUT if needed in EX stage and was gotten from Data Memory
-        (R1_case_dm2alu && dbus_sel_pc_plus_4_M)  : RS1_DATA_E_FWD = PC_plus_4_M;  //Take from PC_plus_4_M if needed in EX stage and was gotten from PC+4
+        (R1_case_dm2alu && dbus_sel_pc_plus_4_M)  : RS1_DATA_E_FWD = PC_PLUS_4_M;  //Take from PC_PLUS_4_M if needed in EX stage and was gotten from PC+4
         R1_case_rf2alu : RS1_DATA_E_FWD = RD_DATA;                                //Take from RD_DATA if needed in EX stage and was about to be written in WB stage
 
         default : RS1_DATA_E_FWD = RS1_DATA_E;
@@ -396,7 +541,7 @@ module riscv_cpu_v2
 
         (R2_case_dm2alu && dbus_sel_alu_M) : RS2_DATA_E_FWD = ALU_M;
         (R2_case_dm2alu && dbus_sel_data_mem_M)  : RS2_DATA_E_FWD = DATA_MEM_OUT; 
-        (R2_case_dm2alu && dbus_sel_pc_plus_4_M)  : RS2_DATA_E_FWD = PC_plus_4_M;       
+        (R2_case_dm2alu && dbus_sel_pc_plus_4_M)  : RS2_DATA_E_FWD = PC_PLUS_4_M;       
         R2_case_rf2alu : RS2_DATA_E_FWD = RD_DATA;
 
         default : RS2_DATA_E_FWD = RS2_DATA_E;
@@ -419,6 +564,10 @@ module riscv_cpu_v2
         .alu_sel_mulh(alu_sel_mulh_E),
         .alu_sel_mulhsu(alu_sel_mulhsu_E),
         .alu_sel_mulhu(alu_sel_mulhu_E),
+        .alu_sel_div(alu_sel_div_E),
+        .alu_sel_divu(alu_sel_divu_E),
+        .alu_sel_rem(alu_sel_rem_E),
+        .alu_sel_remu(alu_sel_remu_E),
         .alu_sel_and(alu_sel_and_E),
         .alu_sel_or(alu_sel_or_E),
         .alu_sel_xor(alu_sel_xor_E),
@@ -433,15 +582,15 @@ module riscv_cpu_v2
     );
 
     //calculating target PC for branches and jumps
-    assign PC_target = (alu_sel_add_E) ? ALU : PC_E + IM_E; //left is for JALR, right for branches and JAL
+    assign PC_TARGET = (alu_sel_add_E) ? ALU : PC_E + IM_E; //left is for JALR, right for branches and JAL
 
     //preparing data and control signals for pipeline reg
-    assign e2m_data_E = {ALU, RS2_DATA_E_FWD, RD_E, PC_plus_4_E};
+    assign e2m_data_E = {ALU, RD_E, PC_PLUS_4_E, PC_E, INSTR_E};
     assign e2m_control_E = {
-        data_mem_wr_en_E,
-        addr_byte_E,
-        addr_half_E,
-        zero_extend_mem_E,
+        // data_mem_wr_en_E,
+        // addr_byte_E,
+        // addr_half_E,
+        // zero_extend_mem_E,
         dbus_sel_alu_E,
         dbus_sel_data_mem_E,
         dbus_sel_pc_plus_4_E,
@@ -453,7 +602,7 @@ module riscv_cpu_v2
 
     //not sure but i think we may not need a pipeline reg here because of the nature of the data_mem
     dff_async_reset #(
-        .WIDTH(101)
+        .WIDTH(133)
     ) ex_mem_reg (
         .d(e2m_data_E),       
         .clk(clk),                   
@@ -463,7 +612,7 @@ module riscv_cpu_v2
     );
 
     dff_async_reset #(
-        .WIDTH(9)
+        .WIDTH(5)
     ) ex_mem_control_reg (
         .d(e2m_control_E),      // Include control signals in pipeline
         .clk(clk),
@@ -475,12 +624,12 @@ module riscv_cpu_v2
 //==================================================================================================================== 
 
     //unpacking data and control signals from pipeline reg
-    assign {ALU_M, RS2_DATA_M, RD_M, PC_plus_4_M} = e2m_data_M;
+    assign {ALU_M, RD_M, PC_PLUS_4_M, PC_M, INSTR_M} = e2m_data_M;
     assign {
-        data_mem_wr_en_M,
-        addr_byte_M,
-        addr_half_M,
-        zero_extend_mem_M,
+        // data_mem_wr_en_M,
+        // addr_byte_M,
+        // addr_half_M,
+        // zero_extend_mem_M,
         dbus_sel_alu_M,
         dbus_sel_data_mem_M,
         dbus_sel_pc_plus_4_M,
@@ -488,25 +637,204 @@ module riscv_cpu_v2
         halt_M
     } = e2m_control_M;     
 
-    //TODO implement rst, in current state data mem entries are initialized to 0xXXXXXXXX
-    //-chris
-    data_memory #(
-        .BIT_WIDTH(32),
-        .ENTRY_COUNT(256)
-    ) my_data_mem (
-        .readAddr(ALU_M),
-        .writeAddr(ALU_M),
-        .writeData(RS2_DATA_M),
-        .writeEn(data_mem_wr_en_M),
-        .readData(DATA_MEM_OUT),
-        .clk(clk),
-        .addr_byte(addr_byte_M),
-        .addr_half(addr_half_M),
-        .zero_extend(zero_extend_mem_M)
+	clock_25 my_clock_25(
+        .clk_50(clk_50),
+        .rst(rst),
+        .vga_clk(vga_clk)
     );
 
+    vga_ctrl #(
+        .PIX_AW(10),
+        .FRM_AW(6)
+    )my_vga_ctrl(
+        .pix_x(pix_x),
+        .pix_y(pix_y),
+        .pix_vis(pix_vis),
+        .frame_id(frame_id),
+        .hs(hs),
+        .vs(vs),
+        .clk(vga_clk),//vga_clk
+        .rst(rst)
+    );
+
+    tbuf_ctrl my_tbuf_ctrl(
+        .norm_pix_x(pix_x[9:2]),
+        .norm_pix_y(pix_y[9:2]),
+        .pix_vis,
+        .clk(vga_clk),
+        .rst(~((pix_x[9:2] == '0) && (pix_y[9:2] == '0))),
+        .char_pix_x(char_pix_x),
+        .char_pix_y(char_pix_y),
+        .tbuf_addr(tbuf_addr),
+        .whitespace_en
+    );
+
+    //synchronous-read data mem, so inputs come straight from EX stage
+    assign DATA_MEM_ADDR = ALU - LOWEST_DATA_MEM_ADDR;
+    assign DATA_MEM_ADDR_B = portb_addr - LOWEST_DATA_MEM_ADDR;
+    assign VRAM_ADDR = (((pix_y>>2)*32'd160 + (pix_x>>2)) << 1) + 32'hAA00;
+    assign TRAM_ADDR = 32'hA890 + tbuf_addr;
+    //assign portb_q = pix_vis ? VRAM_ADDR : '0;
+
+    assign text_mode = portb_extern_en;
+
+    assign portb_rst_mux = '0 /*portb_extern_en*/          ? portb_rst         : (rst);
+    assign PORTB_ADDR_MUX = '0 /*portb_extern_en*/         ? DATA_MEM_ADDR_B   : ((text_mode ? TRAM_ADDR : VRAM_ADDR));
+    assign portb_clk_mux = '0 /*portb_extern_en*/          ? portb_clk         : (vga_clk);
+    assign portb_addr_byte_mux = '0 /*portb_extern_en*/    ? portb_addr_byte   : ((text_mode ? 1'b1 : '0));
+    assign portb_addr_half_mux = '0 /*portb_extern_en*/    ? portb_addr_half   : ((text_mode ? '0 : 1'b1));
+    assign portb_zero_extend_mux = '0 /*portb_extern_en*/  ? portb_zero_extend : (1'b1);
+
+    data_memory #(
+        .BIT_WIDTH(32)
+    ) my_data_mem (
+        .addr((DATA_MEM_ADDR < 32'h14000) ? DATA_MEM_ADDR : '0), //a horrible way to supress altsyncram OOB warnings in the sim.log
+        .writeData(RS2_DATA_E_FWD),
+        .writeEn(data_mem_wr_en_E),
+        .readData(NEW_DATA_MEM_OUT),
+        .clk(clk),
+        .rst(rst),
+        .addr_byte(addr_byte_E),
+        .addr_half(addr_half_E),
+        .zero_extend(zero_extend_mem_E),
+        .portb_rst(portb_rst_mux),
+        .portb_addr((PORTB_ADDR_MUX < 32'h14000) ? PORTB_ADDR_MUX : '0), //a horrible way to supress altsyncram OOB warnings in the sim.log
+        .portb_clk(vga_clk),
+        .portb_q(portb_q),
+        .portb_addr_byte(portb_addr_byte_mux),
+        .portb_addr_half(portb_addr_half_mux),
+        .portb_zero_extend(portb_zero_extend_mux)
+    );
+
+    assign ascii_val = portb_q[7:0];
+
+    font_lut my_font_lut(
+        .ascii_val,
+        .sprite_start_ptr
+    );
+
+    assign sprite_ptr = sprite_start_ptr*8'd7 + char_pix_y;
+
+    font_table my_font_table(
+        .aclr(~rst),
+	    .address(sprite_ptr),
+	    .clock(vga_clk),
+	    .q(pixel_row)
+    );
+
+    cursor_gen my_cursor_gen(
+        .pix_x(pix_x),
+        .pix_y(pix_y),
+        .clk(vga_clk),
+        .cursor_pix_row
+    );
+
+    always_comb begin
+        unique case(pix_x[9:2])
+
+            8'd0    : whitespace_pix = cursor_pix_row[2];
+            8'd1    : whitespace_pix = cursor_pix_row[1];
+            8'd2    : whitespace_pix = cursor_pix_row[0];
+            default : whitespace_pix = 1'b0;
+
+        endcase
+    end
+
+    assign pixel_row_reversed = {pixel_row[0], pixel_row[1], pixel_row[2], pixel_row[3], pixel_row[4]};
+    assign text_pix = pixel_row_reversed[char_pix_x];
+
+    assign graphic_red = portb_q[3:0];
+    assign graphic_green = portb_q[7:4];
+    assign graphic_blue = portb_q[11:8];
+
+    //if '0 is placed in the mux tree (@ whitespace_pix in text_green) then the vga takes a fat shit, all the glyphs get filled out in green, see below
+    //maybe if after the vga overflow fix this goes away who knows...
+    assign text_red = (whitespace_en ? {4{1'b0}} : {4{text_pix}});
+    assign text_green = (whitespace_en ? {4{1'b0}} : {4{text_pix}});
+    assign text_blue = {4{whitespace_pix}};
+
+    //doesnt work :), unlike above where '0 breaks it and ws_p works, this is the opposite
+    // assign VGA_RED =   pix_vis ? (text_mode ? (whitespace_en ? ({4{1'b0}})          : ({4{1'b0}}))       : (portb_q[3:0]))   : '0;
+    // assign VGA_GREEN = pix_vis ? (text_mode ? (whitespace_en ? ({4{whitespace_pix}}): ({4{text_pix}})) : (portb_q[7:4]))   : '0;
+    // assign VGA_BLUE =  pix_vis ? (text_mode ? (whitespace_en ? ({4{1'b0}})          : ({4{1'b0}}))       : (portb_q[11:8]))  : '0;
+
+    //works :) i hate everything
+    // assign VGA_RED =   pix_vis ? '0 : '0;
+    // assign VGA_GREEN = pix_vis ? (whitespace_en ? ({4{whitespace_pix}}): ({4{text_pix}})) : '0;
+    // assign VGA_BLUE =  pix_vis ? {4{whitespace_pix}} : '0;
+
+    assign vga_red_async =   pix_vis ? (text_mode ? text_red   : graphic_red  ) : '0;
+    assign vga_green_async = pix_vis ? (text_mode ? text_green : graphic_green) : '0;
+    assign vga_blue_async =  pix_vis ? (text_mode ? text_blue  : graphic_blue ) : '0;
+    assign vga_hs_async = hs;
+    assign vga_vs_async = vs;
+
+    always_ff @(posedge vga_clk) begin
+
+        vga_red_middle_ff <= vga_red_async;
+        vga_green_middle_ff <= vga_green_async;
+        vga_blue_middle_ff <= vga_blue_async;
+        vga_hs_middle_ff <= vga_hs_async;
+        vga_vs_middle_ff <= vga_vs_async;
+
+        VGA_RED <= vga_red_middle_ff;
+        VGA_GREEN <= vga_green_middle_ff;
+        VGA_BLUE <= vga_blue_middle_ff;
+        VGA_HS <= vga_hs_middle_ff;
+        VGA_VS <= vga_vs_middle_ff;
+
+    end
+
+    // assign VGA_RED = vga_red_async;
+    // assign VGA_GREEN = vga_green_async;
+    // assign VGA_BLUE = vga_blue_async;
+    // assign VGA_HS = vga_hs_async;
+    // assign VGA_VS = vga_vs_async;
+
+    ////////////////////////////////////////////////////////
+    // logic [3:0] color [2:0];
+
+    // // Produce a checker board pattern from pixel addresses
+    // checkers #(10,6,4)
+    // getChecky( .pix_x(pix_x),
+    //     .pix_y(pix_y),
+    //     .pix_v(pix_vis),
+    //     .frame_id(frame_id),
+    //     .color(color),
+    //     .clk(vga_clk),
+    //     .rst(rst)
+    // );
+
+    // assign VGA_RED   = color[0];
+    // assign VGA_GREEN = color[1];
+    // assign VGA_BLUE  = color[2];
+    // assign VGA_HS = hs;
+    // assign VGA_VS = vs;
+    ////////////////////////////////////////////////////////
+
+    //leaving this here in case we need to compare the bram to the lutram behavior at any point
+    // logic [31:0] OLD_DATA_MEM_ADDR;
+    // logic [31:0] OLD_DATA_MEM_OUT;
+    // assign OLD_DATA_MEM_ADDR = ALU_M - LOWEST_DATA_MEM_ADDR; 
+
+    // old_data_memory #(
+    //     .BIT_WIDTH(32),
+    //     .ENTRY_COUNT(4kb of words)
+    // ) my_data_mem_old (
+    //     .addr(OLD_DATA_MEM_ADDR),
+    //     .writeData(RS2_DATA_M),
+    //     .writeEn(data_mem_wr_en_M),
+    //     .readData(OLD_DATA_MEM_OUT),
+    //     .clk(clk),
+    //     .addr_byte(addr_byte_M),
+    //     .addr_half(addr_half_M),
+    //     .zero_extend(zero_extend_mem_M)
+    // );
+
+    assign DATA_MEM_OUT = NEW_DATA_MEM_OUT;
+
     //preparing data and control signals for pipeline reg
-    assign m2w_data_M = {ALU_M, DATA_MEM_OUT, RD_M, PC_plus_4_M};
+    assign m2w_data_M = {ALU_M, DATA_MEM_OUT, RD_M, PC_PLUS_4_M, PC_M, INSTR_M};
     assign m2w_control_M = {
         dbus_sel_alu_M,
         dbus_sel_data_mem_M,
@@ -518,7 +846,7 @@ module riscv_cpu_v2
 /* < MEM/WB > */ //====================================================================================================
 
     dff_async_reset #(
-        .WIDTH(101)
+        .WIDTH(165)
     ) mem_wb_reg (
         .d(m2w_data_M),
         .clk(clk),
@@ -540,7 +868,7 @@ module riscv_cpu_v2
 //====================================================================================================================     
 
     //unpacking data and control signals from pipeline reg
-    assign {ALU_W, DATA_MEM_OUT_W, RD_W, PC_plus_4_W} = m2w_data_W;
+    assign {ALU_W, DATA_MEM_OUT_W, RD_W, PC_PLUS_4_W, PC_W, INSTR_W} = m2w_data_W;
     assign {
         dbus_sel_alu_W,
         dbus_sel_data_mem_W,
@@ -555,10 +883,34 @@ module riscv_cpu_v2
 
         dbus_sel_alu_W        : RD_DATA = ALU_W;
         dbus_sel_data_mem_W   : RD_DATA = DATA_MEM_OUT_W;
-        dbus_sel_pc_plus_4_W  : RD_DATA = PC_plus_4_W;
+        dbus_sel_pc_plus_4_W  : RD_DATA = PC_PLUS_4_W;
 
         default : RD_DATA = '0;
         endcase
     end
+
+//====================================================================================================================    
+    
+    assign instr_f_out = INSTR_F_FLUSH;
+    assign instr_d_out = INSTR_D_FLUSH;
+    assign instr_e_out = INSTR_E;
+    assign instr_m_out = INSTR_M;
+    assign instr_w_out = INSTR_W;
+
+    assign pc_f_out = PC;
+    assign pc_d_out = PC_D;
+    assign pc_e_out = PC_E;
+    assign pc_m_out = PC_M;
+    assign pc_w_out = PC_W;
+
+    assign control_hazard = flush_FD;
+
+    assign r1_data_hazard_1 = R1_case_dm2alu ? RD_M : (5'b0);
+    assign r1_data_hazard_2 = R1_case_rf2alu ? RD_W : (5'b0);
+    assign r1_data_hazard_3 = R1_case_rf2rf ? RD_W : (5'b0);
+
+    assign r2_data_hazard_1 = R2_case_dm2alu ? RD_M : (5'b0);
+    assign r2_data_hazard_2 = R2_case_rf2alu ? RD_W : (5'b0);
+    assign r2_data_hazard_3 = R2_case_rf2rf ? RD_W : (5'b0);
 
 endmodule

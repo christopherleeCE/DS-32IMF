@@ -9,6 +9,10 @@ module alu
     input logic alu_sel_mulh,
     input logic alu_sel_mulhsu,
     input logic alu_sel_mulhu,
+    input logic alu_sel_div,
+    input logic alu_sel_divu,
+    input logic alu_sel_rem,
+    input logic alu_sel_remu,
     input logic alu_sel_and,
     input logic alu_sel_or,
     input logic alu_sel_xor,
@@ -54,6 +58,11 @@ logic slt_result, sltu_result;
 assign slt_result = signed_a < signed_b;
 assign sltu_result = operand_a < operand_b;
 
+// NOTE - This operator "/" appears to be the most straightforward way to
+// do division in SystemVerilog within one-clock cycle. However, it is
+// stated the circuit generated during synthesis is particularly resource
+// intensive; if any alternatives are known, they might be worth exploring.
+
 always_comb begin
     unique case(1'b1)
     alu_sel_add : result = operand_a + operand_b; // ADD
@@ -62,6 +71,29 @@ always_comb begin
     alu_sel_mulh : result = product_ss[2*WIDTH-1:WIDTH];  // MULH
     alu_sel_mulhsu : result = product_su[2*WIDTH-1:WIDTH]; // MULHSU
     alu_sel_mulhu : result = product_uu[2*WIDTH-1:WIDTH];  // MULHU
+
+    alu_sel_div : begin // DIV
+    if(signed_b == 0)                                                           result = {WIDTH{1'b1}};
+    else if(signed_a == {1'b1,{(WIDTH-1){1'b0}}} && signed_b == {WIDTH{1'b1}})  result = signed_a;
+    else                                                                        result = signed_a / signed_b;
+                end
+
+    alu_sel_divu: begin // DIVU
+        if (operand_b == 0) result = {WIDTH{1'b1}};
+        else result = operand_a / operand_b;
+                end
+
+    alu_sel_rem : begin // REM
+    if(signed_b == 0)                                                           result = signed_a;
+    else if (signed_a == {1'b1,{(WIDTH-1){1'b0}}} && signed_b == {WIDTH{1'b1}}) result = {WIDTH{1'b0}};
+    else                                                                        result = signed_a % signed_b;
+                end
+
+    alu_sel_remu: begin // REMU
+    if (operand_b == 0) result = operand_a;
+    else result = operand_a % operand_b;
+    end
+
     alu_sel_and : result = operand_a & operand_b; // AND
     alu_sel_or : result = operand_a | operand_b; // OR
     alu_sel_xor : result = operand_a ^ operand_b; // XOR
@@ -76,6 +108,6 @@ end
 
 // Flag assignments
 assign zero_flag = ( result == '0 ); 
-assign less_than = slt_result;
+assign less_than = alu_sel_sltu ? sltu_result : slt_result;
 
 endmodule
