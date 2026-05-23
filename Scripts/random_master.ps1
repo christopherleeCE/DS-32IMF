@@ -10,6 +10,7 @@ param(
     [switch]$golden_history,
     [switch]$verify_output,
     [switch]$no_verify,
+    [switch]$continue,
     [switch]$v,
     [switch]$wave_dump,
     [switch]$mem_dump
@@ -33,7 +34,7 @@ if($help){
     -golden_history:    shows dump of golden_history[] on every negedge
     -verify_output:     shows debug info of verify_row()'s
     -no_verify:         disable verification, script will verify if this argument is NOT given
-    -v:                 enables -golden_calc -dut_dump -golden_history -verify_output -continue
+    -v:                 enables -golden_calc -dut_dump -golden_history -verify_output
     -wave_dump:         include if you need a wave dump, slows down simulation
     -mem_dump:         include if you need a wave dump, does a gold vs dut verifcation, no real preformance impact with single sim
 
@@ -48,7 +49,6 @@ if($help){
 }
 
 $simScriptArgs = @{
-    continue = $true;
     no_compile = $false
 }
 
@@ -57,6 +57,7 @@ if ($dut_dump)          { $simScriptArgs.dut_dump = $true }
 if ($golden_history)    { $simScriptArgs.golden_history = $true }
 if ($verify_output)     { $simScriptArgs.verify_output = $true }
 if ($no_verify)         { $simScriptArgs.no_verify = $true }
+if ($continue)          { $simScriptArgs.continue = $true }
 if ($v)                 { $simScriptArgs.v = $true }
 if ($wave_dump)         { $simScriptArgs.wave_dump = $true }
 if ($mem_dump)         { $simScriptArgs.mem_dump = $true }

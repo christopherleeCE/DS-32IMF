@@ -33,7 +33,7 @@ if ($Help) {
     -verify_output:     shows debug info of verify_row()'s
     -no_verify:         disable verification, script will verify if this argument is NOT given
     -continue:          continue simulation even on instruction failure
-    -v:                 enables -golden_calc -dut_dump -golden_history -verify_output -continue
+    -v:                 enables -golden_calc -dut_dump -golden_history -verify_output
     -wave_dump:         include if you need a wave dump, slows down simulation
     -mem_dump:         include if you need a wave dump, does a gold vs dut verifcation, probably doesnt have any real preformance impact if you are only doing on sim
     -time <INTEGER>     sets the runtime of the questia simulation to be <INTEGER> micro seconds, default is 2us
@@ -47,7 +47,7 @@ if ($golden_history)    { $vsimArgs += " +GOLDEN_HISTORY" }
 if ($verify_output)     { $vsimArgs += " +VERIFY_OUTPUT"}
 if ($no_verify)         { $vsimArgs += " +NO_VERIFY" }
 if ($continue)          { $vsimArgs += " +CONTINUE" }
-if ($v)                 { $vsimArgs += " +GOLDEN_CALC +DUT_DUMP +GOLDEN_HISTORY +VERIFY_OUTPUT +CONTINUE"}
+if ($v)                 { $vsimArgs += " +GOLDEN_CALC +DUT_DUMP +GOLDEN_HISTORY +VERIFY_OUTPUT "}# +CONTINUE"}
 if ($wave_dump)         { $vsimArgs += " +WAVE_DUMP" }
 if ($mem_dump)         { $vsimArgs += " +MEM_DUMP" }
 

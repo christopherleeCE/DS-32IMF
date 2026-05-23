@@ -80,7 +80,21 @@ void print_uint(unsigned int int_val){
     write_nl(tmp_str);
 }
 
-int printf(const char* fmt, ...){
+void do_nothing(char* str){
+    return;
+}
+
+/*fixes todo
+size == 0, snprintf(NULL, 0, ...)
+terminate string FIXED
+fallthrough, i dont see that warning, FIXED
+hex loop wrong bounds, FIXED
+intmin UB, FIXED
+uneeded memset, FIXED
+ret val, 
+*/
+
+int snprintf(char* restrict str, size_t size, const char* restrict fmt, ...){
 
     //declare an init args list
     va_list args;
@@ -88,9 +102,8 @@ int printf(const char* fmt, ...){
 
     //full text buff, plus null buffer
     char tmp_str[32];
-    char buffer[365];
-    char* buffer_ptr = buffer;
-    char* upper_bound = buffer + 364; //one char oustide of tbuff, should have null ptr
+    char* str_ptr = str;
+    char* upper_bound = str + size-1; //one char oustide of tbuff, should have null ptr
 
     int bcd_arr[10]; //largest arr for 32bit bcd
     int str_len, leading_zero_cnt, tmp;
@@ -107,13 +120,8 @@ int printf(const char* fmt, ...){
     uint32_t uint_val;
 
     int j = 10;
-    while(*fmt){ //buffer_ptr should always either be in the buffer, or at the last idx of buffer (null term)
-
-        print_uint((int)fmt);
-        //printf("curr char: %c @ %p\n", *fmt, fmt);
+    while(*fmt){ //str_ptr should always either be in the buffer, or at the last idx of buffer (null term)... i think :)
         if(*fmt == '%'){
-            //printf("found */,\n");
-
             fmt++;
             switch(*(fmt++)){
 
@@ -122,67 +130,66 @@ int printf(const char* fmt, ...){
 
                     //catch zero, write to buffer and inc ptr
                     if(!(int_val = va_arg(args, int))){
-                        if(buffer_ptr < upper_bound){ //check if this write is implicitly writing a nullterm
-                            (buffer_ptr++)[0] = '0';
-                            break;
+                        if(str_ptr < upper_bound){ //check if this write is implicitly writing a nullterm
+                            (str_ptr++)[0] = '0';
+                            break; //break switch
                         }else{
-                            printf("overflow in buffer");
+                            do_nothing("overflow in buffer");
                         }
                     }//get neg status and abs int_val
                     if(int_val < 0){
                         is_negative = true;
-                        int_val = -int_val;
+                        int_val = -(uint32_t)int_val; //case to prevent -INT_MIN UB
 
                     }else{is_negative = false;}
 
                     //convert to bcd, write neg sign
                     str_len = uint2bcd((uint32_t)int_val, bcd_arr) + is_negative;
-                    if((buffer_ptr + (str_len-1)) >= upper_bound){
-                        printf("overflow in buffer");
+                    if((str_ptr + (str_len-1)) >= upper_bound){
+                        do_nothing("overflow in buffer");
 
-                    }if(is_negative) (buffer_ptr++)[0] = '-';
+                    }if(is_negative) (str_ptr++)[0] = '-';
 
                     //write remainder of ascii chars
                     for(int i = 0; i < (str_len-is_negative); ++i){
-                        buffer_ptr[i] = bcd_arr[str_len-is_negative-i-1] + 48; //indexing :)
+                        str_ptr[i] = bcd_arr[str_len-is_negative-i-1] + 48; //indexing :)
 
-                    }buffer_ptr += str_len-is_negative;
+                    }str_ptr += str_len-is_negative;
 
-                    break;
+                    break; //break switch
                 case 'u':
 
                     //catch zero, write to buffer and inc ptr
                     if(!(uint_val = va_arg(args, uint32_t))){
-                        if(buffer_ptr < upper_bound){ //check if this write is implicitly writing a nullterm
-                            (buffer_ptr++)[0] = '0';
-                            break;
+                        if(str_ptr < upper_bound){ //check if this write is implicitly writing a nullterm
+                            (str_ptr++)[0] = '0';
+                            break; //break switch
                         }else{
-                            printf("overflow in buffer");
+                            do_nothing("overflow in buffer");
                         }
                     }str_len = uint2bcd(uint_val, bcd_arr);
                     
-                    if((buffer_ptr + (str_len-1)) >= upper_bound){
-                        printf("overflow in buffer");
+                    if((str_ptr + (str_len-1)) >= upper_bound){
+                        do_nothing("overflow in buffer");
 
                     //write ascii to buffer, inc ptr
                     }for(int i = 0; i < str_len; ++i){
-                        buffer_ptr[i] = bcd_arr[str_len-i-1] + 48;
+                        str_ptr[i] = bcd_arr[str_len-i-1] + 48;
 
-                    }buffer_ptr += str_len;
+                    }str_ptr += str_len;
 
-                    break;
+                    break; //break switch
                 case 'b': //works fine (i think :), just not a part of gcc's std imp so not including it here for "compatability"
 
                     //catch zero, write to buffer and inc ptr
                     if(!(uint_val = va_arg(args, uint32_t))){
-                        if(buffer_ptr < upper_bound){ //check if this write is implicitly writing a nullterm
-                            (buffer_ptr++)[0] = '0';
-                            break;
+                        if(str_ptr < upper_bound){ //check if this write is implicitly writing a nullterm
+                            (str_ptr++)[0] = '0';
+                            break; //break switch
                         }else{
-                            printf("overflow in buffer");
+                            do_nothing("overflow in buffer");
                         }
-                    }memset(tmp_str, 0, sizeof(tmp_str));
-                    leading_zero_cnt = 0;
+                    }leading_zero_cnt = 0;
 
                     //shift then write ascii to tmp_str
                     for(int i = 31; i >= 0; --i){
@@ -198,29 +205,28 @@ int printf(const char* fmt, ...){
                         uint_val >>= 1;
 
                     //catch buffer overflow before write
-                    }if((buffer_ptr + (32-leading_zero_cnt) - 1) >= upper_bound){
-                        printf("overflow in buffer");
+                    }if((str_ptr + (32-leading_zero_cnt) - 1) >= upper_bound){
+                        do_nothing("overflow in buffer");
 
                     //take full str, and cut off all leading zeros
                     }for(int i = leading_zero_cnt; i < 32; ++i){
-                        buffer_ptr[i-leading_zero_cnt] = tmp_str[i];
+                        str_ptr[i-leading_zero_cnt] = tmp_str[i];
 
                     //inc ptr according to how much was written
-                    }buffer_ptr += (32-leading_zero_cnt);
+                    }str_ptr += (32-leading_zero_cnt);
                     
-                    break;
+                    break; //break switch
                 case 'o':
 
                     //catch zero, write to buffer and inc ptr
                     if(!(uint_val = va_arg(args, uint32_t))){
-                        if(buffer_ptr < upper_bound){ //check if this write is implicitly writing a nullterm
-                            (buffer_ptr++)[0] = '0';
-                            break;
+                        if(str_ptr < upper_bound){ //check if this write is implicitly writing a nullterm
+                            (str_ptr++)[0] = '0';
+                            break; //break switch
                         }else{
-                            printf("overflow in buffer");
+                            do_nothing("overflow in buffer");
                         }
-                    }memset(tmp_str, 0, sizeof(tmp_str));
-                    leading_zero_cnt = 0;
+                    }leading_zero_cnt = 0;
 
                     //shift then write ascii to tmp_str
                     for(int i = 10; i >= 0; --i){
@@ -236,31 +242,30 @@ int printf(const char* fmt, ...){
                         uint_val >>= 3;
 
                     //catch buffer overflow before write
-                    }if((buffer_ptr + (11-leading_zero_cnt) - 1)>= upper_bound){
-                        printf("overflow in buffer");
+                    }if((str_ptr + (11-leading_zero_cnt) - 1)>= upper_bound){
+                        do_nothing("overflow in buffer");
                     
                     //take full str, and cut off all leading zeros
                     }for(int i = leading_zero_cnt; i < 11; ++i){
-                        buffer_ptr[i-leading_zero_cnt] = tmp_str[i];
+                        str_ptr[i-leading_zero_cnt] = tmp_str[i];
 
                     //inc ptr according to how much was written
-                    }buffer_ptr += (11-leading_zero_cnt);
+                    }str_ptr += (11-leading_zero_cnt);
 
-                    break;
+                    break; //break switch
                 case 'X':
                     uppercase_en = 16;
                 case 'x':
 
                     //catch zero, write to buffer and inc ptr
                     if(!(uint_val = va_arg(args, uint32_t))){
-                        if(buffer_ptr < upper_bound){ //check if this write is implicitly writing a nullterm
-                            (buffer_ptr++)[0] = '0';
-                            break;
+                        if(str_ptr < upper_bound){ //check if this write is implicitly writing a nullterm
+                            (str_ptr++)[0] = '0';
+                            break; //break switch
                         }else{
-                            printf("overflow in buffer");
+                            do_nothing("overflow in buffer");
                         }
-                    }memset(tmp_str, 0, sizeof(tmp_str));
-                    leading_zero_cnt = 0;
+                    }leading_zero_cnt = 0;
 
                     //shift then write ascii to tmp_str
                     for(int i = 7; i >= 0; --i){
@@ -276,49 +281,48 @@ int printf(const char* fmt, ...){
                         uint_val >>= 4;
 
                     //catch buffer overflow before write
-                    }if((buffer_ptr + (8-leading_zero_cnt) - 1) >= upper_bound){
-                        printf("overflow in buffer");
+                    }if((str_ptr + (8-leading_zero_cnt) - 1) >= upper_bound){
+                        do_nothing("overflow in buffer");
 
                     //take full str, and cut off all leading zeros
-                    }for(int i = leading_zero_cnt; i < 11; ++i){
-                        buffer_ptr[i-leading_zero_cnt] = tmp_str[i];
+                    }for(int i = leading_zero_cnt; i < 8; ++i){
+                        str_ptr[i-leading_zero_cnt] = tmp_str[i];
 
                     //inc ptr according to how much was written
-                    }buffer_ptr += (8-leading_zero_cnt);
+                    }str_ptr += (8-leading_zero_cnt);
                     uppercase_en = 0;
 
-                    break;
+                    break; //break switch
                 case '%':
 
-                    //max write is 1 chars, so 0(1) + 0<-OOB check
-                    if(buffer_ptr >= upper_bound)
-                        printf("overflow in buffer");
+                    if(str_ptr < upper_bound){ //check if write is valid
+                        (str_ptr++)[0] = '%';
+                        break; //break switch
+                    }else{
+                        do_nothing("overflow in buffer");
+                    }
 
-                    break;
                 default:
 
-                    printf("UNKOWN IDENTIFIER");
+                    do_nothing("UNKOWN IDENTIFIER");
                     
-        
             }
         }else{ //inc ptr if in bounds, close off str if not
-            if(buffer_ptr < upper_bound){
-                *(buffer_ptr++) = *fmt++;
+            if(str_ptr < upper_bound){
+                *(str_ptr++) = *fmt++;
 
             }else{
-                *buffer = '\0';
-                break;
+                break; //break out of while loop
             }
         }        
     }
 
-    write_nl(buffer);
-    print_uint(tram_top);
-    print_uint(tram_bottom);
-    //fill out frame buffer
-    for(int i = 0; i < 364; ++i){
-        tram_bottom[i] = buffer[i];
+    if(size > 0){ //we've reached the end of fmt, or str, terminate str
+        *str_ptr = '\0';
     }
+    //at this point we are either done with fmt, or reached the upperbound and null termed str[]
+    //str_ptr should either be at null term idx (last, size-1) or the null term
+    return 0; //TODO imp actual return
 }
 
 int putchar(int c){
