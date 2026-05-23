@@ -48,7 +48,7 @@ module riscv_cpu_v2(
 
     localparam logic [31:0] LOWEST_DATA_MEM_ADDR = 32'h18000;
     localparam logic [31:0] VRAM_BOTTOM_ADDR = 32'hAA00;
-    localparam logic [31:0] TRAM_BOTTOM_ADDR = 32'hA890;
+    localparam logic [31:0] TRAM_BOTTOM_ADDR = 32'hA880;
 
     //new terminology:
     // f=fetch, d=decode, e=execute, m=memory, w=writeback
@@ -673,7 +673,7 @@ module riscv_cpu_v2(
     assign DATA_MEM_ADDR = ALU - LOWEST_DATA_MEM_ADDR;
     assign DATA_MEM_ADDR_B = portb_addr - LOWEST_DATA_MEM_ADDR;
     assign VRAM_ADDR = (((pix_y>>2)*32'd160 + (pix_x>>2)) << 1) + 32'hAA00;
-    assign TRAM_ADDR = 32'hA890 + tbuf_addr;
+    assign TRAM_ADDR = tbuf_addr + TRAM_BOTTOM_ADDR;
     //assign portb_q = pix_vis ? VRAM_ADDR : '0;
 
     assign text_mode = portb_extern_en;
