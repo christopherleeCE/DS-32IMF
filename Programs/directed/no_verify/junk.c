@@ -5,7 +5,7 @@
 
 //waits an arbitary amount of time
 void wait(int n){
-    for(int ii = 0; ii < n; ++ii);
+    for(int ii = 0; ii < 250000; ++ii);
 }
 
 void wait_fixed(){
@@ -34,19 +34,18 @@ char text_buffer[368] = {
 
 int main(){
 
-    char buff[26];
+    char buff[27];
+    int sret;
+    int i = 0;
 
-    newline();
-    print_uint(17);
-    snprintf(buff, sizeof(buff), "val: %d", 674208);
-    wait_fixed();
-    wait_fixed();
-    wait_fixed();
-    wait_fixed();
-    wait_fixed();
-    wait_fixed();
-    newline();
+    sret = snprintf(NULL, 0, "val: %X,%x,%X,%x,%%%%###", 1,2,3,4);
+    print_uint(sret);
     write_nl(buff);
+    sret = snprintf(buff, sret+1, "val: %X,%x,%X,%x,%%%%###", 1,2,3,4);
+    print_uint(sret);
+    write_nl(buff);
+    write_nl("done");
+    
     return tb_return(0, 0);
 
 }

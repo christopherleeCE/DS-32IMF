@@ -16,6 +16,8 @@ size_t tram_size = (size_t)&_tram_size;
 //returns len of str cpy'd to the stdout, excluding nullterm
 size_t write_nl(char* str){
 
+    newline();
+
     int str_end_idx = 26;
     for(int i = 0; i < 26; ++i){
         //print_uint(i);
@@ -62,21 +64,19 @@ void print_uint(unsigned int int_val){
     //int_val = 0 breaks something down the line...
     //i dont feel like figureing it out, this fixes it
     if(!int_val){
-        newline();
         write_nl("0");
         return;
 
     //largest array needed for 32bit bcd val
     }int bcd_arr[10];
     int bcd_len = uint2bcd(int_val, bcd_arr);
-    
+
     char tmp_str[11];
     for(int i = 0; i < bcd_len; ++i){
         tmp_str[i] = bcd_arr[bcd_len-i-1] + 48;
 
     }tmp_str[bcd_len] = '\0';
 
-    newline();
     write_nl(tmp_str);
 }
 
@@ -103,12 +103,14 @@ int snprintf(char* restrict str, size_t size, const char* restrict fmt, ...){
     //full text buff, plus null buffer
     char tmp_str[32];
     char* str_ptr = str;
-    char* upper_bound = str + size-1; //one char oustide of tbuff, should have null ptr
+    char* upper_bound = str + (size ? size-1 : 0); //one char oustide of tbuff, should have null ptr
 
     int bcd_arr[10]; //largest arr for 32bit bcd
     int str_len, leading_zero_cnt, tmp;
     bool is_negative;
     int uppercase_en = 0;
+    char* str_base;
+    char* str_upper_bound;
 
     //not null terminated to avoid extra padding
     char hex_chars[32] = {
@@ -128,14 +130,16 @@ int snprintf(char* restrict str, size_t size, const char* restrict fmt, ...){
                 case 'd':
                 case 'i':
 
-                    //catch zero, write to buffer and inc ptr
+                    //if intval = 0
                     if(!(int_val = va_arg(args, int))){
+
+                        //conditonal write, uncondictional prt inc and break
                         if(str_ptr < upper_bound){ //check if this write is implicitly writing a nullterm
-                            (str_ptr++)[0] = '0';
-                            break; //break switch
-                        }else{
-                            do_nothing("overflow in buffer");
-                        }
+                            (str_ptr)[0] = '0';
+                            
+                        }str_ptr++;
+                        break;
+
                     }//get neg status and abs int_val
                     if(int_val < 0){
                         is_negative = true;
@@ -143,53 +147,67 @@ int snprintf(char* restrict str, size_t size, const char* restrict fmt, ...){
 
                     }else{is_negative = false;}
 
-                    //convert to bcd, write neg sign
+                    //convert to bcd, get str_len (includes neg sign)
                     str_len = uint2bcd((uint32_t)int_val, bcd_arr) + is_negative;
-                    if((str_ptr + (str_len-1)) >= upper_bound){
-                        do_nothing("overflow in buffer");
+                    str_upper_bound = str_ptr + str_len; //exclusive
+                    str_base = str_ptr;
 
-                    }if(is_negative) (str_ptr++)[0] = '-';
+                    //cond write, uncond inc, TODO imp trunc mid %d
+                    if(is_negative){
 
-                    //write remainder of ascii chars
-                    for(int i = 0; i < (str_len-is_negative); ++i){
-                        str_ptr[i] = bcd_arr[str_len-is_negative-i-1] + 48; //indexing :)
+                        if(str_ptr < upper_bound){
+                            (str_ptr)[0] = '-';
 
-                    }str_ptr += str_len-is_negative;
+                        }str_ptr++;
 
+                    }while(str_ptr < str_upper_bound){
+
+                        if(str_ptr < upper_bound){
+
+                            *str_ptr = bcd_arr[str_len - (str_ptr-str_base) - 1] + 48; //bcd indexing, = str_len - i - 1
+
+                        }str_ptr++;
+                    }
                     break; //break switch
                 case 'u':
 
-                    //catch zero, write to buffer and inc ptr
+                    //if intval = 0
                     if(!(uint_val = va_arg(args, uint32_t))){
+
+                        //conditonal write, uncondictional prt inc and break
                         if(str_ptr < upper_bound){ //check if this write is implicitly writing a nullterm
-                            (str_ptr++)[0] = '0';
-                            break; //break switch
-                        }else{
-                            do_nothing("overflow in buffer");
-                        }
+                            (str_ptr)[0] = '0';
+                            
+                        }str_ptr++;
+                        break;
+
                     }str_len = uint2bcd(uint_val, bcd_arr);
-                    
-                    if((str_ptr + (str_len-1)) >= upper_bound){
-                        do_nothing("overflow in buffer");
+                    str_upper_bound = str_ptr + str_len; //exclusive
+                    str_base = str_ptr;
 
-                    //write ascii to buffer, inc ptr
-                    }for(int i = 0; i < str_len; ++i){
-                        str_ptr[i] = bcd_arr[str_len-i-1] + 48;
+                    while(str_ptr < str_upper_bound){
 
-                    }str_ptr += str_len;
+                        if(str_ptr < upper_bound){
+
+                            *str_ptr = bcd_arr[str_len - (str_ptr-str_base) - 1] + 48; //bcd indexing, = str_len - i - 1
+
+                        }str_ptr++;
+                    }
 
                     break; //break switch
                 case 'b': //works fine (i think :), just not a part of gcc's std imp so not including it here for "compatability"
 
-                    //catch zero, write to buffer and inc ptr
+                    //if uintval = 0
                     if(!(uint_val = va_arg(args, uint32_t))){
+
+                        //conditonal write, uncondictional prt inc and break
                         if(str_ptr < upper_bound){ //check if this write is implicitly writing a nullterm
-                            (str_ptr++)[0] = '0';
-                            break; //break switch
-                        }else{
-                            do_nothing("overflow in buffer");
-                        }
-                    }leading_zero_cnt = 0;
+                            (str_ptr)[0] = '0';
+                            
+                        }str_ptr++;
+                        break;
+
+                    }leading_zero_cnt = 0; 
 
                     //shift then write ascii to tmp_str
                     for(int i = 31; i >= 0; --i){
@@ -204,29 +222,32 @@ int snprintf(char* restrict str, size_t size, const char* restrict fmt, ...){
                         }tmp_str[i] = tmp + 48;
                         uint_val >>= 1;
 
-                    //catch buffer overflow before write
-                    }if((str_ptr + (32-leading_zero_cnt) - 1) >= upper_bound){
-                        do_nothing("overflow in buffer");
+                    }str_upper_bound = str_ptr + 32-leading_zero_cnt;
+                    str_base = str_ptr;
 
-                    //take full str, and cut off all leading zeros
-                    }for(int i = leading_zero_cnt; i < 32; ++i){
-                        str_ptr[i-leading_zero_cnt] = tmp_str[i];
+                    while(str_ptr < str_upper_bound){
 
-                    //inc ptr according to how much was written
-                    }str_ptr += (32-leading_zero_cnt);
-                    
+                        if(str_ptr < upper_bound){
+
+                            *str_ptr = tmp_str[(str_ptr-str_base) + leading_zero_cnt];//tmp_str idx = i + offset
+
+                        }str_ptr++;
+                    }
+
                     break; //break switch
                 case 'o':
 
-                    //catch zero, write to buffer and inc ptr
+                    //if uintval = 0
                     if(!(uint_val = va_arg(args, uint32_t))){
+
+                        //conditonal write, uncondictional prt inc and break
                         if(str_ptr < upper_bound){ //check if this write is implicitly writing a nullterm
-                            (str_ptr++)[0] = '0';
-                            break; //break switch
-                        }else{
-                            do_nothing("overflow in buffer");
-                        }
-                    }leading_zero_cnt = 0;
+                            (str_ptr)[0] = '0';
+                            
+                        }str_ptr++;
+                        break;
+
+                    }leading_zero_cnt = 0; 
 
                     //shift then write ascii to tmp_str
                     for(int i = 10; i >= 0; --i){
@@ -241,30 +262,34 @@ int snprintf(char* restrict str, size_t size, const char* restrict fmt, ...){
                         }tmp_str[i] = (tmp) + 48;
                         uint_val >>= 3;
 
-                    //catch buffer overflow before write
-                    }if((str_ptr + (11-leading_zero_cnt) - 1)>= upper_bound){
-                        do_nothing("overflow in buffer");
-                    
-                    //take full str, and cut off all leading zeros
-                    }for(int i = leading_zero_cnt; i < 11; ++i){
-                        str_ptr[i-leading_zero_cnt] = tmp_str[i];
 
-                    //inc ptr according to how much was written
-                    }str_ptr += (11-leading_zero_cnt);
+                    }str_upper_bound = str_ptr + 11-leading_zero_cnt;
+                    str_base = str_ptr;
+
+                    while(str_ptr < str_upper_bound){
+
+                        if(str_ptr < upper_bound){
+
+                            *str_ptr = tmp_str[(str_ptr-str_base) + leading_zero_cnt];//tmp_str idx = i + offset
+
+                        }str_ptr++;
+                    } 
 
                     break; //break switch
                 case 'X':
                     uppercase_en = 16;
                 case 'x':
 
-                    //catch zero, write to buffer and inc ptr
+                    //if uintval = 0
                     if(!(uint_val = va_arg(args, uint32_t))){
+
+                        //conditonal write, uncondictional prt inc and break
                         if(str_ptr < upper_bound){ //check if this write is implicitly writing a nullterm
-                            (str_ptr++)[0] = '0';
-                            break; //break switch
-                        }else{
-                            do_nothing("overflow in buffer");
-                        }
+                            (str_ptr)[0] = '0';
+                            
+                        }str_ptr++;
+                        break;
+
                     }leading_zero_cnt = 0;
 
                     //shift then write ascii to tmp_str
@@ -280,54 +305,119 @@ int snprintf(char* restrict str, size_t size, const char* restrict fmt, ...){
                         }tmp_str[i] = tmp;
                         uint_val >>= 4;
 
-                    //catch buffer overflow before write
-                    }if((str_ptr + (8-leading_zero_cnt) - 1) >= upper_bound){
-                        do_nothing("overflow in buffer");
 
-                    //take full str, and cut off all leading zeros
-                    }for(int i = leading_zero_cnt; i < 8; ++i){
-                        str_ptr[i-leading_zero_cnt] = tmp_str[i];
+                    }str_upper_bound = str_ptr + 8-leading_zero_cnt;
+                    str_base = str_ptr;
+                    
+                    while(str_ptr < str_upper_bound){
 
-                    //inc ptr according to how much was written
-                    }str_ptr += (8-leading_zero_cnt);
+                        if(str_ptr < upper_bound){
+
+                            *str_ptr = tmp_str[(str_ptr-str_base) + leading_zero_cnt];//tmp_str idx = i + offset
+
+                        }str_ptr++;
+                    } 
+
                     uppercase_en = 0;
 
                     break; //break switch
                 case '%':
 
-                    if(str_ptr < upper_bound){ //check if write is valid
-                        (str_ptr++)[0] = '%';
-                        break; //break switch
-                    }else{
-                        do_nothing("overflow in buffer");
-                    }
+                    //cond write, uncond inc
+                    if(str_ptr < upper_bound){
 
+                        (str_ptr)[0] = '%';
+
+                    }str_ptr++;
+
+                    break;
                 default:
 
-                    do_nothing("UNKOWN IDENTIFIER");
-                    
-            }
-        }else{ //inc ptr if in bounds, close off str if not
-            if(str_ptr < upper_bound){
-                *(str_ptr++) = *fmt++;
+                    //cond write, uncond inc
+                    if(str_ptr < upper_bound){
 
-            }else{
-                break; //break out of while loop
+                        //runtime error indicator
+                        (str_ptr)[0] = 0x9D;
+
+                    }str_ptr++;
+                    break; //break switch
             }
+        }else{ //if not % identifier, here is where we write non identifiers
+            //cond write, uncond inc
+            if(str_ptr < upper_bound){
+                *str_ptr = *fmt;
+
+            }str_ptr++;
+            fmt++;
         }        
     }
 
-    if(size > 0){ //we've reached the end of fmt, or str, terminate str
+    if(size > 0){ //we've reached the end of fmt, terminate str
         *str_ptr = '\0';
     }
     //at this point we are either done with fmt, or reached the upperbound and null termed str[]
     //str_ptr should either be at null term idx (last, size-1) or the null term
-    return 0; //TODO imp actual return
+    return (int)(str_ptr - str); //TODO imp actual return
 }
 
 int putchar(int c){
     char tmp_str[] = {(char)c, '\0'};
-    newline();
     write_nl(tmp_str);
 }
 
+
+/*
+| Specifier | Meaning                               | Example         |
+| --------- | ------------------------------------- | --------------- |
+| `%d`      | signed decimal int                    | `-42`           |
+| `%i`      | signed int                            | `-42`           |
+| `%u`      | unsigned decimal int                  | `42`            |
+| `%x`      | unsigned hex (lowercase)              | `2a`            |
+| `%X`      | unsigned hex (uppercase)              | `2A`            |
+| `%o`      | unsigned octal                        | `52`            |
+| `%b`      | binary (non-standard, some libs only) | `101010`        |
+| `%c`      | character                             | `A`             |
+| `%s`      | string                                | `hello`         |
+| `%p`      | pointer address                       | `0x1234abcd`    |
+| `%f`      | float/double decimal                  | `3.141593`      |
+| `%F`      | uppercase float                       | `3.141593`      |
+| `%e`      | scientific notation                   | `3.14e+00`      |
+| `%E`      | uppercase scientific                  | `3.14E+00`      |
+| `%g`      | shortest of `%f` or `%e`              | `3.14`          |
+| `%G`      | uppercase `%g`                        | `3.14`          |
+| `%a`      | hex float                             | `0x1.91eb86p+1` |
+| `%A`      | uppercase hex float                   | `0X1.91EB86P+1` |
+| `%n`      | store chars written so far into int*  | —               |
+| `%%`      | literal percent sign                  | `%`             |
+
+| Modifier | Type                            |
+| -------- | ------------------------------- |
+| `hh`     | `signed char` / `unsigned char` |
+| `h`      | `short`                         |
+| `l`      | `long`                          |
+| `ll`     | `long long`                     |
+| `z`      | `size_t`                        |
+| `t`      | `ptrdiff_t`                     |
+| `j`      | `intmax_t`                      |
+| `L`      | `long double`                   |
+
+| Escape       | Meaning               |
+| ------------ | --------------------- |
+| `\\`         | backslash             |
+| `\'`         | single quote          |
+| `\"`         | double quote          |
+| `\?`         | question mark         |
+| `\a`         | bell/alert            |
+| `\b`         | backspace             |
+| `\f`         | form feed             |
+| `\n`         | newline               |
+| `\r`         | carriage return       |
+| `\t`         | horizontal tab        |
+| `\v`         | vertical tab          |
+| `\0`         | null character        |
+| `\ooo`       | octal byte value      |
+| `\xhh`       | hex byte value        |
+| `\uhhhh`     | Unicode escape (C99+) |
+| `\Uhhhhhhhh` | long Unicode escape   |
+
+*/

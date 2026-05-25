@@ -61,8 +61,8 @@ SECTIONS
     _vram_size = VRAM_START;
 
     _tram_top = TRAM_END;
-    _stdout_col = TRAM_START + 366 /*3 byte outside tbuf, 2 after null term, 2 byte len*/
-    _stdout_row = TRAM_START + 365 /*2 byte outside tbuf, 1 after null term, 1 byte len*/
+    _stdout_col = TRAM_START + 366; /*3 byte outside tbuf, 2 after null term, 2 byte len*/
+    _stdout_row = TRAM_START + 365; /*2 byte outside tbuf, 1 after null term, 1 byte len*/
     _tram_bottom = TRAM_START;
     _tram_size = TRAM_SIZE;
 
