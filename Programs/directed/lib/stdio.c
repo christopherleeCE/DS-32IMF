@@ -1,22 +1,26 @@
+#ifndef X86_BUILD 
+
 #include "drysoup.h"
 #include <stddef.h>
-
-
 #include <stdarg.h>
 
 
-extern char _tram_top; //top right of stdout
-extern char _tram_bottom; //slightly past the bottom right of stdout (unused mem)
+extern char _tram_top; //slightly past the bottom right of stdout (unused mem)
+extern char _tram_bottom; //top right of stdout
+extern uint8_t _stdout_row;
+extern uint16_t _stdout_col;
 extern size_t _tram_size;
 
 char* tram_top = &_tram_top;
 char* tram_bottom = &_tram_bottom;
+uint8_t* stdout_row_ptr = &_stdout_row;
+uint16_t* stdout_col_ptr = &_stdout_col;
 size_t tram_size = (size_t)&_tram_size;
 
 //returns len of str cpy'd to the stdout, excluding nullterm
 size_t write_nl(char* str){
 
-    newline();
+    scroll();
 
     int str_end_idx = 26;
     for(int i = 0; i < 26; ++i){
@@ -36,7 +40,28 @@ size_t write_nl(char* str){
     }return (size_t)str_end_idx;
 }
 
-void newline(){
+//returns len of str cpy'd to the stdout, excluding nullterm
+size_t write(char* str){
+
+    int str_end_idx = 26;
+    for(int i = 0; i < 26; ++i){
+        //print_uint(i);
+        if(str[i]){
+            ((char*)(tram_bottom + 338))[i] = str[i];
+        }else{
+            str_end_idx = i;
+            break;
+        }
+
+    }
+    for(int j = str_end_idx; j < 26; ++j){
+        //print_uint(j);
+        ((char*)(tram_bottom + 338))[j] = ' '; //fill out remaining line with empyt spaces
+
+    }return (size_t)str_end_idx;
+}
+
+void scroll(){
     //copy lines to lines above
     for(int ii = 0; ii < 13; ++ii){
         memcpy((tram_bottom + 26*ii), (tram_bottom + 26*(ii+1)), 26);
@@ -93,12 +118,16 @@ intmin UB, FIXED
 uneeded memset, FIXED
 ret val, 
 */
-
 int snprintf(char* restrict str, size_t size, const char* restrict fmt, ...){
-
-    //declare an init args list
     va_list args;
     va_start(args, fmt);
+    int ret = vsnprintf(str, size, fmt, args);
+    va_end(args);
+    return ret;
+}
+
+int vsnprintf(char* restrict str, size_t size, const char* restrict fmt, va_list args){
+
 
     //full text buff, plus null buffer
     char tmp_str[32];
@@ -121,7 +150,6 @@ int snprintf(char* restrict str, size_t size, const char* restrict fmt, ...){
     int int_val;
     uint32_t uint_val;
 
-    int j = 10;
     while(*fmt){ //str_ptr should always either be in the buffer, or at the last idx of buffer (null term)... i think :)
         if(*fmt == '%'){
             fmt++;
@@ -360,6 +388,79 @@ int snprintf(char* restrict str, size_t size, const char* restrict fmt, ...){
     return (int)(str_ptr - str); //TODO imp actual return
 }
 
+int printf(const char *restrict fmt, ...){
+
+    //364 + 1
+    char buffer[365];
+    char* buffer_ptr;
+    char* malloc_base;
+    char* printed_str_start;
+    int num_written;
+    bool malloc_used = 0;
+
+    va_list args;
+    va_start(args, fmt);
+
+    va_list args_copy;
+    va_copy(args_copy, args);
+
+    int ret_size = vsnprintf(NULL, 0, fmt, args);
+
+    if(ret_size <= 364){
+        buffer_ptr = buffer;
+        num_written = vsnprintf(buffer_ptr, ret_size+1, fmt, args_copy);
+
+    }else{ //cut off start of string if write cnt to large for buffer
+        malloc_used = 1;
+        buffer_ptr = (malloc_base = malloc(ret_size+1)); //alloc full string plus nulterm
+        num_written = vsnprintf(buffer_ptr, ret_size+1, fmt, args_copy);
+        buffer_ptr = (printed_str_start += (num_written - 364));
+
+    }va_end(args_copy);
+    va_end(args);
+
+    while(*buffer_ptr){
+
+        if(*buffer_ptr == '\n' || *stdout_col_ptr > 25){
+            if(*buffer_ptr == '\n') buffer_ptr++;
+
+            if(*stdout_row_ptr >= 13){ //reached bottom of stdout, scroll screen
+                scroll();
+                *stdout_row_ptr = 13;
+            }else{ //not at bottom, newline only
+                (*stdout_row_ptr)++;
+            }
+
+            *stdout_col_ptr = 0;
+
+        }else{
+            if(*buffer_ptr == '\t'){
+                for(int i = 0; i < 4; ++i){
+                    if(*stdout_col_ptr >= 25){
+                        break;
+                    }else{
+                    *(tram_bottom + 26*(*stdout_row_ptr) + (*stdout_col_ptr)++) = ' ';
+                    }
+                }buffer_ptr++;
+                if(*buffer_ptr == '\0'){
+                }
+            }else{
+                *(tram_bottom + 26*(*stdout_row_ptr) + (*stdout_col_ptr)++) = *buffer_ptr++;
+                if(*buffer_ptr == '\0'){
+                }
+
+            }
+        }
+    }
+
+    if(malloc_used){
+        free(malloc_base);
+        return (int)(buffer_ptr - printed_str_start);
+    }else{
+        return (int)(buffer_ptr - buffer);
+    }
+}
+
 int putchar(int c){
     char tmp_str[] = {(char)c, '\0'};
     write_nl(tmp_str);
@@ -421,3 +522,5 @@ int putchar(int c){
 | `\Uhhhhhhhh` | long Unicode escape   |
 
 */
+
+#endif

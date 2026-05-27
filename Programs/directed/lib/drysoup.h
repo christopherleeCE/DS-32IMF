@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdarg.h>
 
 //note that in directed_master.ps1, there are possible conflicts with memcpy and memset when the x86 is ran,
 //it seems that right now gcc uses the glib version and not ours, howver that alse may cause an issue as our
@@ -22,12 +23,18 @@ void* realloc(void* ptr, size_t new_size);
 void free(void* ptr);
 
 //stdio
-void newline();
+void scroll();
 size_t write_nl(char* str);
 size_t uint2bcd(uint32_t val, int ret_arr[]);
 int putchar(int c);
 void print_uint(unsigned int int_val);
 int snprintf(char* restrict str, size_t size, const char* restrict fmt, ...) __attribute__((format(printf, 3, 4)));
+int vsnprintf(char* restrict str, size_t size, const char* restrict fmt, va_list args);
+int printf(const char* restrict fmt, ...) __attribute__((format(printf, 1, 2)));
+
+//dsgl
+int draw_pixel(uint8_t x, uint8_t y, uint16_t xrgb);
+int draw_line(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1, uint16_t xrgb);
 
 //misc
 uint32_t pack_ptr(uintptr_t ptr, uint8_t len, bool is_string);

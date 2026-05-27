@@ -18,6 +18,10 @@
                 "add a0, a0, 8\n"       //a0 = _heap_start + payload_size + 8 (8 bytes of the header)
                 "sw a2, 0(a0)\n"        //write footer.size
                 "la sp, _stack_top\n"   //init stack ptr
+                "la a0, _stdout_col\n"
+                "la a1, _stdout_row\n"
+                "sh zero, 0(a0)\n"      //zero out col tracker
+                "sb zero, 0(a1)\n"      //zero out row tracker
                 
                 //jmp to int main
                 "jal ra, main\n"

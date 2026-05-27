@@ -14,38 +14,36 @@ void wait_fixed(){
 
 __attribute__((section(".tram"), used))                    
 char text_buffer[368] = {
-  /*"##########################"*/ 
-    "                          "
-    " @@@   @@@    @@@@@@@  @  "
-    " @  @ @      @  __   @  @ "
-    " @  @  @@   @  @@@@ @  @  "
-    " @  @    @   @  ^^    @   "
-    " @@@  @@@     @@@@@@@@    "
-    "                          "
-    " @@@  @@@  @@@ @   @ @@@@ "
-    "    @    @  @  @@ @@ @    "
-    " @@@    @   @  @ @ @ @@@@ "
-    "    @  @    @  @   @ @    "
-    " @@@  @@@@ @@@ @   @ @    "
-    "                          "
-    "                          "
-  /*"##########################"*/ 
+    /*"##########################"*/ 
+      "                          "
+      "                          "
+      "                          "
+      "                          "
+      "                          "
+      "                          "
+      "                          "
+      "                          "
+      "                          "
+      "                          "
+      "                          "
+      "                          "
+      "                          "
+      "                          "
+    /*"##########################"*/ 
 };
 
 int main(){
-
+    wait_fixed();
+    wait_fixed();
+    wait_fixed();
+    wait_fixed();
+    wait_fixed();
+    wait_fixed();
     char buff[27];
-    int sret;
-    int i = 0;
-
-    sret = snprintf(NULL, 0, "val: %X,%x,%X,%x,%%%%###", 1,2,3,4);
-    print_uint(sret);
-    write_nl(buff);
-    sret = snprintf(buff, sret+1, "val: %X,%x,%X,%x,%%%%###", 1,2,3,4);
-    print_uint(sret);
-    write_nl(buff);
-    write_nl("done");
-    
+    // snprintf(buff, 26, "<%d>", 12345);
+    // write_nl(buff);
+    draw_pixel(159, 0, 0x0FFF);
+    draw_line(0, 0, 50, 100, 0x0F00);
     return tb_return(0, 0);
 
 }

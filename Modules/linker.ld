@@ -57,8 +57,8 @@ SECTIONS
     _actual_dmem_top = ORIGIN(DMEM) + LENGTH(DMEM);
 
     _vram_top = VRAM_END;
-    _vram_bottom = VRAM_SIZE;
-    _vram_size = VRAM_START;
+    _vram_bottom = VRAM_START;
+    _vram_size = VRAM_SIZE;
 
     _tram_top = TRAM_END;
     _stdout_col = TRAM_START + 366; /*3 byte outside tbuf, 2 after null term, 2 byte len*/
