@@ -22,6 +22,7 @@ TODO reimp portb sel after ecall imp
 TODO printf full imp
 TODO ps/2 io implentation
 TODO go through warnings in quartus
+TODO csr's with forwarding and data hazards
 .
 .
 .
